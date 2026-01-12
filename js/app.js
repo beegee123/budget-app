@@ -3970,12 +3970,6 @@ function deleteBudgetConfirm(budgetId) {
     }
 }
 
-// Close modals when clicking outside
-window.onclick = function(event) {
-    if (event.target.classList.contains('modal')) {
-        event.target.style.display = 'none';
-    }
-
 // ===== FIREBASE CLOUD SYNC =====
 
 async function manualSyncToCloud() {
@@ -4025,5 +4019,11 @@ async function manualLoadFromCloud() {
         alert('📭 No cloud data found.\n\nSave to cloud first from another device.');
     }
 }
+
+// Close modals when clicking outside
+window.onclick = function(event) {
+    if (event.target.classList.contains('modal')) {
+        event.target.style.display = 'none';
+    }
 };
 
