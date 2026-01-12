@@ -101,6 +101,9 @@
                     ⚙️ Tools ▼
                 </button>
                 <div id="toolsDropdown" class="dropdown-content">
+                    <a href="#" onclick="manualSyncToCloud(); closeAllDropdowns(); return false;">☁️ Save to Cloud</a>
+                    <a href="#" onclick="manualLoadFromCloud(); closeAllDropdowns(); return false;">⬇️ Load from Cloud</a>
+                    <div class="dropdown-divider"></div>
                     <a href="#" onclick="openManageIncomeModal(); closeAllDropdowns(); return false;">📊 Manage Income</a>
                     <a href="#" onclick="openManageCategoriesModal(); closeAllDropdowns(); return false;">🏷️ Manage Categories</a>
                     <a href="#" onclick="openCashFlowModal(); closeAllDropdowns(); return false;">📊 Cash Flow</a>

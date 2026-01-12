@@ -3976,6 +3976,54 @@ window.onclick = function(event) {
         event.target.style.display = 'none';
     }
 
+// ===== FIREBASE CLOUD SYNC =====
 
+async function manualSyncToCloud() {
+    if (!FirebaseSync.isInitialized) {
+        alert('❌ Firebase not initialized. Please refresh the page.');
+        return;
+    }
+    
+    const confirmed = confirm('☁️ Save all data to cloud?\n\nThis will overwrite any cloud data with your current local data.');
+    
+    if (!confirmed) return;
+    
+    const success = await FirebaseSync.saveToCloud();
+    
+    if (success) {
+        alert('✅ Data saved to cloud!\n\nYour budget is now backed up and can be synced to other devices.');
+    } else {
+        alert('❌ Failed to save to cloud. Check console for errors.');
+    }
+}
+
+async function manualLoadFromCloud() {
+    if (!FirebaseSync.isInitialized) {
+        alert('❌ Firebase not initialized. Please refresh the page.');
+        return;
+    }
+    
+    const confirmed = confirm('⬇️ Load data from cloud?\n\n⚠️ This will REPLACE your current local data with cloud data.');
+    
+    if (!confirmed) return;
+    
+    const cloudData = await FirebaseSync.loadFromCloud();
+    
+    if (cloudData) {
+        // Import the cloud data
+        Storage.importData(cloudData);
+        
+        // Refresh UI
+        updateBudgetDropdown();
+        updateMonthDisplay();
+        updateDashboard();
+        renderCategoryFilters();
+        renderEnvelopes();
+        
+        alert('✅ Data loaded from cloud!\n\nYour local data has been updated.');
+    } else {
+        alert('📭 No cloud data found.\n\nSave to cloud first from another device.');
+    }
+}
 };
 
