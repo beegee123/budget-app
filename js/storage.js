@@ -124,41 +124,113 @@ const Storage = {
 
     // ===== UTILITY =====
     
-    // Export all data as JSON (for backup)
+    // Export all data as JSON (for backup) - ALL BUDGETS
     exportData() {
-        const activeBudget = this.getActiveBudget();
-        const budgets = this.getBudgets();
-        const currentBudget = budgets.find(b => b.id === activeBudget);
+        const allBudgets = this.getBudgets();
+        const activeBudgetId = this.getActiveBudget();
+        
+        // Collect data from ALL budgets
+        const budgetData = {};
+        
+        allBudgets.forEach(budget => {
+            // Temporarily switch to this budget to read its data
+            const originalActiveBudget = this.getActiveBudget();
+            localStorage.setItem(this.KEYS.ACTIVE_BUDGET, budget.id);
+            
+            budgetData[budget.id] = {
+                envelopes: this.getEnvelopes(),
+                income: this.getIncome(),
+                transactions: this.getTransactions(),
+                bankBalance: this.getBankBalance(),
+                templates: this.getTemplates(),
+                spendingTemplates: this.getSpendingTemplates(),
+                accounts: this.getAccounts(),
+                currentMonth: this.getCurrentMonth(),
+                monthArchives: this.getMonthArchives()
+            };
+            
+            // Restore original active budget
+            localStorage.setItem(this.KEYS.ACTIVE_BUDGET, originalActiveBudget);
+        });
         
         return {
-            budgetName: currentBudget ? currentBudget.name : 'Unknown Budget',
-            budgetId: activeBudget,
-            envelopes: this.getEnvelopes(),
-            income: this.getIncome(),
-            transactions: this.getTransactions(),
-            bankBalance: this.getBankBalance(),
-            templates: this.getTemplates(),
-            spendingTemplates: this.getSpendingTemplates(),
-            accounts: this.getAccounts(),
-            currentMonth: this.getCurrentMonth(),
-            monthArchives: this.getMonthArchives(),
-            exportDate: new Date().toISOString()
+            exportVersion: '2.0', // Multi-budget format
+            exportDate: new Date().toISOString(),
+            budgets: allBudgets,
+            activeBudget: activeBudgetId,
+            budgetData: budgetData
         };
     },
 
-    // Import data from JSON (restore from backup)
+  // Import data from JSON (restore from backup) - ALL BUDGETS
     importData(data) {
-        if (data.envelopes) this.saveEnvelopes(data.envelopes);
-        if (data.income) this.saveIncome(data.income);
-        if (data.transactions) this.saveTransactions(data.transactions);
-        if (data.bankBalance !== undefined) this.saveBankBalance(data.bankBalance);
-        if (data.templates) this.saveTemplates(data.templates);
-        if (data.spendingTemplates) this.saveSpendingTemplates(data.spendingTemplates);
-        if (data.accounts) this.saveAccounts(data.accounts);
-        if (data.currentMonth) this.setCurrentMonth(data.currentMonth);
-        if (data.monthArchives) this.saveMonthArchives(data.monthArchives);
+        // Check if this is the new multi-budget format (v2.0+)
+        if (data.exportVersion === '2.0' && data.budgets && data.budgetData) {
+            console.log('📦 Importing multi-budget backup...');
+            
+            // Restore budgets list
+            this.saveBudgets(data.budgets);
+            
+            // Restore active budget
+            if (data.activeBudget) {
+                this.setActiveBudget(data.activeBudget);
+            }
+            
+            // Restore data for each budget
+            Object.keys(data.budgetData).forEach(budgetId => {
+                const budgetInfo = data.budgetData[budgetId];
+                
+                // Save data with proper namespace
+                if (budgetInfo.envelopes) {
+                    localStorage.setItem(`${budgetId}_envelopes`, JSON.stringify(budgetInfo.envelopes));
+                }
+                if (budgetInfo.income) {
+                    localStorage.setItem(`${budgetId}_income`, JSON.stringify(budgetInfo.income));
+                }
+                if (budgetInfo.transactions) {
+                    localStorage.setItem(`${budgetId}_transactions`, JSON.stringify(budgetInfo.transactions));
+                }
+                if (budgetInfo.bankBalance !== undefined) {
+                    localStorage.setItem(`${budgetId}_bankBalance`, budgetInfo.bankBalance.toString());
+                }
+                if (budgetInfo.templates) {
+                    localStorage.setItem(`${budgetId}_fundingTemplates`, JSON.stringify(budgetInfo.templates));
+                }
+                if (budgetInfo.spendingTemplates) {
+                    localStorage.setItem(`${budgetId}_spendingTemplates`, JSON.stringify(budgetInfo.spendingTemplates));
+                }
+                if (budgetInfo.accounts) {
+                    localStorage.setItem(`${budgetId}_accounts`, JSON.stringify(budgetInfo.accounts));
+                }
+                if (budgetInfo.currentMonth) {
+                    localStorage.setItem(`${budgetId}_currentMonth`, JSON.stringify(budgetInfo.currentMonth));
+                }
+                if (budgetInfo.monthArchives) {
+                    localStorage.setItem(`${budgetId}_monthArchives`, JSON.stringify(budgetInfo.monthArchives));
+                }
+                
+                console.log(`✅ Restored budget: ${budgetId}`);
+            });
+            
+            console.log('✅ Multi-budget import complete!');
+            
+        } else {
+            // Legacy single-budget format - import into current budget
+            console.log('📦 Importing legacy single-budget backup into current budget...');
+            
+            if (data.envelopes) this.saveEnvelopes(data.envelopes);
+            if (data.income) this.saveIncome(data.income);
+            if (data.transactions) this.saveTransactions(data.transactions);
+            if (data.bankBalance !== undefined) this.saveBankBalance(data.bankBalance);
+            if (data.templates) this.saveTemplates(data.templates);
+            if (data.spendingTemplates) this.saveSpendingTemplates(data.spendingTemplates);
+            if (data.accounts) this.saveAccounts(data.accounts);
+            if (data.currentMonth) this.setCurrentMonth(data.currentMonth);
+            if (data.monthArchives) this.saveMonthArchives(data.monthArchives);
+            
+            console.log('✅ Legacy import complete!');
+        }
     },
-
     // Clear ALL data for current budget (use with caution!)
     clearAll() {
         const activeBudget = this.getActiveBudget();

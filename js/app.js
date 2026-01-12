@@ -1205,8 +1205,11 @@ function importData(event) {
             // Parse JSON
             const data = JSON.parse(e.target.result);
             
-            // Validate the data structure
-            if (!data.envelopes || !data.income || !data.transactions) {
+            // Validate the data structure (support both v2.0 and legacy formats)
+            const isNewFormat = data.exportVersion === '2.0' && data.budgets && data.budgetData;
+            const isLegacyFormat = data.envelopes || data.income || data.transactions;
+            
+            if (!isNewFormat && !isLegacyFormat) {
                 throw new Error('Invalid backup file format. Missing required data.');
             }
             
@@ -1214,15 +1217,31 @@ function importData(event) {
             Storage.importData(data);
             
             // Refresh the entire UI
+            updateBudgetDropdown(); // Update budget selector
+            updateMonthDisplay(); // Update month display
             updateDashboard();
             renderCategoryFilters();
             renderEnvelopes();
             
-            alert('✅ Data imported successfully!\n\n' +
-                  `Envelopes: ${data.envelopes.length}\n` +
-                  `Income records: ${data.income.length}\n` +
-                  `Transactions: ${data.transactions.length}\n` +
-                  `Bank Balance: ${BudgetApp.formatCurrency(data.bankBalance || 0)}`);
+            // Show appropriate success message based on format
+            if (isNewFormat) {
+                // Multi-budget import
+                const budgetCount = data.budgets ? data.budgets.length : 0;
+                const budgetNames = data.budgets ? data.budgets.map(b => b.name).join(', ') : '';
+                const activeBudgetName = data.budgets.find(b => b.id === data.activeBudget)?.name || 'Unknown';
+                
+                alert('✅ Complete backup restored!\n\n' +
+                      `Budgets restored: ${budgetCount}\n` +
+                      `(${budgetNames})\n\n` +
+                      `Active budget: ${activeBudgetName}`);
+            } else {
+                // Legacy single-budget import
+                alert('✅ Data imported successfully!\n\n' +
+                      `Envelopes: ${data.envelopes?.length || 0}\n` +
+                      `Income records: ${data.income?.length || 0}\n` +
+                      `Transactions: ${data.transactions?.length || 0}\n` +
+                      `Bank Balance: ${BudgetApp.formatCurrency(data.bankBalance || 0)}`);
+            }
             
         } catch (error) {
             alert('❌ Error importing data: ' + error.message + '\n\nPlease check the file and try again.');
