@@ -1,0 +1,24 @@
+Archive/
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Personal backup/archive folder
+Archive/
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary files
+*.tmp
+*.log
+
+# Any personal notes or test files
+notes.txt
+test.html
+scratch.js

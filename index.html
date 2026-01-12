@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Budget Envelopes - Phase 1</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <!-- Header -->
+        <header>
+            <h1>💰 Smart Envelopes</h1>
+            <p class="subtitle">Plan, Fund, and Track Your Money</p>
+            
+            <!-- Budget Selector -->
+            <div class="budget-selector">
+                <label for="budgetDropdown">Budget:</label>
+                <select id="budgetDropdown" onchange="switchBudget(this.value)">
+                    <!-- Populated by JavaScript -->
+                </select>
+                <button class="btn-manage-budgets" onclick="openManageBudgetsModal()" title="Manage Budgets">
+                    📋
+                </button>
+            </div>
+            
+            <div class="month-display">
+                <span id="currentMonthDisplay"></span>
+                <button class="btn-month-menu" onclick="openMonthMenu()">📅</button>
+            </div>
+            
+            <!-- Tab Navigation -->
+            <div class="tab-navigation">
+                <button class="tab-btn active" data-tab="budget" onclick="switchTab('budget')">
+                    💰 Budget
+                </button>
+                <button class="tab-btn" data-tab="reports" onclick="switchTab('reports')">
+                    📊 Reports
+                </button>
+            </div>
+        </header>
+
+        <!-- Budget Tab Content -->
+        <div id="budget-view" class="tab-content active">
+
+        <!-- Dashboard Summary -->
+        <section class="dashboard">
+            <div class="summary-card">
+                <h3>Total Planned</h3>
+                <p class="amount" id="totalPlanned">$0.00</p>
+            </div>
+            <div class="summary-card">
+                <h3>Total Funded</h3>
+                <p class="amount" id="totalFunded">$0.00</p>
+            </div>
+            <div class="summary-card">
+                <h3>Total Spent</h3>
+                <p class="amount" id="totalSpent">$0.00</p>
+            </div>
+            <div class="summary-card">
+                <h3>Available to Fund</h3>
+                <p class="amount" id="availableToFund">$0.00</p>
+            </div>
+        </section>
+
+        <!-- Action Buttons -->
+        <section class="actions">
+            <button class="btn btn-primary" onclick="openModal('envelopeModal')">
+                + Create Envelope
+            </button>
+            <button class="btn btn-secondary" onclick="openModal('incomeModal')">
+                💵 Add Income
+            </button>
+            <button class="btn btn-tertiary" onclick="openModal('fundingModal')">
+                🔥 Fund Envelopes
+            </button>
+            <button class="btn btn-account" onclick="openAccountsModal()">
+                🏦 Accounts
+            </button>
+            
+            <!-- Templates Dropdown -->
+            <div class="dropdown">
+                <button class="btn btn-menu" onclick="toggleDropdown('templatesDropdown')">
+                    📋 Templates ▼
+                </button>
+                <div id="templatesDropdown" class="dropdown-content">
+                    <a href="#" onclick="openTemplatesModal(); closeAllDropdowns(); return false;">Funding Templates</a>
+                    <a href="#" onclick="openSpendingTemplatesModal(); closeAllDropdowns(); return false;">Spending Templates</a>
+                </div>
+            </div>
+            
+            <!-- Tools Dropdown -->
+            <div class="dropdown">
+                <button class="btn btn-menu" onclick="toggleDropdown('toolsDropdown')">
+                    ⚙️ Tools ▼
+                </button>
+                <div id="toolsDropdown" class="dropdown-content">
+                    <a href="#" onclick="openManageIncomeModal(); closeAllDropdowns(); return false;">📊 Manage Income</a>
+                    <a href="#" onclick="openManageCategoriesModal(); closeAllDropdowns(); return false;">🏷️ Manage Categories</a>
+                    <a href="#" onclick="openCashFlowModal(); closeAllDropdowns(); return false;">📊 Cash Flow</a>
+                    <div class="dropdown-divider"></div>
+                    <a href="#" onclick="exportData(); closeAllDropdowns(); return false;">💾 Export Data</a>
+                    <a href="#" onclick="document.getElementById('importFile').click(); closeAllDropdowns(); return false;">📂 Import Data</a>
+                    <div class="dropdown-divider"></div>
+                    <a href="#" onclick="resetAllData(); closeAllDropdowns(); return false;" style="color: #e53e3e;">🚨 Reset All Data</a>
+                </div>
+            </div>
+            
+            <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importData(event)">
+        </section>
+
+        <!-- Envelopes List -->
+        <section class="envelopes-section">
+            <div class="section-header">
+                <h2>Your Envelopes</h2>
+                <div id="categoryFilters" class="category-filters">
+                    <!-- Category filter buttons will be added here dynamically -->
+                </div>
+            </div>
+            <div id="envelopesList">
+                <!-- Envelopes will be dynamically added here -->
+            </div>
+        </section>
+        </div>
+        <!-- End Budget Tab Content -->
+
+        <!-- Reports Tab Content -->
+        <div id="reports-view" class="tab-content">
+            <!-- Reports Header -->
+            <section class="reports-header">
+                <h2>📊 Monthly Reports</h2>
+                <div class="reports-controls">
+                    <label for="reportsMonthSelect">Viewing:</label>
+                    <select id="reportsMonthSelect" onchange="renderReports()">
+                        <!-- Will be populated dynamically -->
+                    </select>
+                </div>
+            </section>
+
+            <!-- Summary Stats -->
+            <section class="reports-summary">
+                <div class="stat-card">
+                    <div class="stat-label">Total Income</div>
+                    <div class="stat-value" id="reportTotalIncome">$0.00</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Allocated</div>
+                    <div class="stat-value" id="reportTotalAllocated">$0.00</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Spent</div>
+                    <div class="stat-value negative" id="reportTotalSpent">$0.00</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Unspent</div>
+                    <div class="stat-value positive" id="reportUnspent">$0.00</div>
+                </div>
+            </section>
+
+            <!-- Charts Row -->
+            <section class="reports-charts">
+                <!-- Category Breakdown -->
+                <div class="chart-container">
+                    <h3>Spending by Category</h3>
+                    <canvas id="categoryChart"></canvas>
+                    <div id="categoryChartEmpty" class="chart-empty" style="display: none;">
+                        <p>No spending data yet. Start recording transactions to see this chart!</p>
+                    </div>
+                </div>
+
+                <!-- Budget Performance -->
+                <div class="chart-container">
+                    <h3>Top Spending Envelopes</h3>
+                    <canvas id="envelopeChart"></canvas>
+                    <div id="envelopeChartEmpty" class="chart-empty" style="display: none;">
+                        <p>No spending data yet. Start recording transactions to see this chart!</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Budget Performance Table -->
+            <section class="budget-performance">
+                <h3>Budget Performance</h3>
+                <div id="budgetPerformanceList">
+                    <!-- Will be populated dynamically -->
+                </div>
+            </section>
+        </div>
+        <!-- End Reports Tab Content -->
+    </div>
+
+    <!-- Modal: Create Envelope -->
+    <div id="envelopeModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('envelopeModal')">&times;</span>
+            <h2>Create New Envelope</h2>
+            <form id="envelopeForm">
+                <label>Envelope Name:</label>
+                <input type="text" id="envelopeName" placeholder="e.g., Groceries" required>
+                
+                <label>Monthly Budget (Planned):</label>
+                <input type="number" id="envelopePlanned" placeholder="500" step="0.01" required>
+                
+                <label>Category:</label>
+                <input 
+                    type="text" 
+                    id="envelopeCategory" 
+                    list="categoryList" 
+                    placeholder="e.g., Bills, Food, Entertainment" 
+                    required
+                >
+                <datalist id="categoryList">
+                    <!-- Existing categories will appear here as suggestions -->
+                </datalist>
+                <small style="color: #718096; font-size: 0.85em; display: block; margin-top: 5px;">
+                    💡 Type any category or choose from existing ones
+                </small>
+                
+                <button type="submit" class="btn btn-primary">Create Envelope</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Edit Envelope -->
+    <div id="editEnvelopeModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('editEnvelopeModal')">&times;</span>
+            <h2>Edit Envelope</h2>
+            <form id="editEnvelopeForm">
+                <input type="hidden" id="editEnvelopeId">
+                
+                <label>Envelope Name:</label>
+                <input type="text" id="editEnvelopeName" placeholder="e.g., Groceries" required>
+                
+                <label>Monthly Budget (Planned):</label>
+                <input type="number" id="editEnvelopePlanned" placeholder="500" step="0.01" required>
+                
+                <label>Category:</label>
+                <input 
+                    type="text" 
+                    id="editEnvelopeCategory" 
+                    list="categoryListEdit" 
+                    placeholder="e.g., Bills, Food, Entertainment" 
+                    required
+                >
+                <datalist id="categoryListEdit">
+                    <!-- Existing categories will appear here as suggestions -->
+                </datalist>
+                <small style="color: #718096; font-size: 0.85em; display: block; margin-top: 5px;">
+                    💡 Type any category or choose from existing ones
+                </small>
+                
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Add Income -->
+    <div id="incomeModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('incomeModal')">&times;</span>
+            <h2>Add Income/Paycheck</h2>
+            <form id="incomeForm">
+                <label>Income Source Name:</label>
+                <input 
+                    type="text" 
+                    id="incomeSource" 
+                    placeholder="e.g., Main Job, Freelance, Side Hustle" 
+                    required
+                >
+
+                <label>Frequency:</label>
+                <select id="incomeFrequency">
+                    <option value="weekly">Weekly</option>
+                    <option value="biweekly">Biweekly (Every 2 weeks)</option>
+                    <option value="semimonthly">Twice Monthly (1st & 15th)</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="quarterly">Quarterly</option>
+                    <option value="annually">Annually</option>
+                    <option value="other">Other/One-time</option>
+                </select>
+                
+                <label>Amount:</label>
+                <input type="number" id="incomeAmount" placeholder="1500" step="0.01" required>
+                
+                <label>Date Received:</label>
+                <input type="date" id="incomeDate" required>
+                
+                <label>Deposit To Account:</label>
+                <select id="incomeAccount">
+                    <option value="">Select account...</option>
+                </select>
+                <small style="color: #718096; font-size: 0.85em; display: block; margin-top: 5px;">
+                    💡 Optional: Track which account received this income
+                </small>
+                
+                <button type="submit" class="btn btn-primary">Add Income</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Manage Income -->
+    <div id="manageIncomeModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <span class="close" onclick="closeModal('manageIncomeModal')">&times;</span>
+            <h2>📊 Manage Income Records</h2>
+            
+            <div id="incomeRecordsList">
+                <!-- Income records will be rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Edit Income -->
+    <div id="editIncomeModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('editIncomeModal')">&times;</span>
+            <h2>Edit Income Record</h2>
+            
+            <form id="editIncomeForm">
+                <input type="hidden" id="editIncomeId">
+                
+                <label>Income Source Name:</label>
+                <input 
+                    type="text" 
+                    id="editIncomeSource" 
+                    placeholder="e.g., Main Job, Freelance" 
+                    required
+                >
+
+                <label>Frequency:</label>
+                <select id="editIncomeFrequency">
+                    <option value="weekly">Weekly</option>
+                    <option value="biweekly">Biweekly (Every 2 weeks)</option>
+                    <option value="semimonthly">Twice Monthly (1st & 15th)</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="quarterly">Quarterly</option>
+                    <option value="annually">Annually</option>
+                    <option value="other">Other/One-time</option>
+                </select>
+                
+                <label>Amount:</label>
+                <input type="number" id="editIncomeAmount" placeholder="1500" step="0.01" required>
+                
+                <label>Date Received:</label>
+                <input type="date" id="editIncomeDate" required>
+                
+                <label>Deposit To Account:</label>
+                <select id="editIncomeAccount">
+                    <option value="">Select account...</option>
+                </select>
+                <small style="color: #718096; font-size: 0.85em; display: block; margin-top: 5px;">
+                    💡 Optional: Track which account received this income
+                </small>
+                
+                <div id="editIncomeWarning" style="display: none; background: #fed7d7; color: #742a2a; padding: 12px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #f56565;">
+                    ⚠️ <strong>Warning:</strong> This income has already been allocated to envelopes. Editing may affect your budget.
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Fund Envelopes -->
+    <div id="fundingModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('fundingModal')">&times;</span>
+            <h2>Fund Your Envelopes</h2>
+            <p class="info">Available to allocate: <strong id="fundingAvailable">$0.00</strong></p>
+            <div id="fundingList">
+                <!-- Funding inputs will be dynamically added here -->
+            </div>
+            <button class="btn btn-primary" onclick="applyFunding()">Apply Funding</button>
+        </div>
+    </div>
+
+    <!-- Modal: Funding Templates -->
+    <div id="templatesModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <span class="close" onclick="closeModal('templatesModal')">&times;</span>
+            <h2>📋 Funding Templates</h2>
+            
+            <button class="btn btn-primary" onclick="openCreateTemplateModal()" style="margin-bottom: 20px;">
+                + Create New Template
+            </button>
+            
+            <div id="templatesList">
+                <!-- Templates will be rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Create/Edit Template -->
+    <div id="createTemplateModal" class="modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <span class="close" onclick="closeModal('createTemplateModal')">&times;</span>
+            <h2 id="templateModalTitle">Create Funding Template</h2>
+            
+            <form id="templateForm">
+                <input type="hidden" id="templateId">
+                
+                <label>Template Name:</label>
+                <input type="text" id="templateName" placeholder="e.g., Job 1 - Biweekly" required>
+                
+                <label>Day of Month (1-31):</label>
+                <input type="number" id="templateDay" placeholder="15" min="1" max="31" required>
+                
+                <label>Expected Amount:</label>
+                <input type="number" id="templateAmount" placeholder="1500.00" step="0.01" required>
+                
+                <label>Allocation Plan:</label>
+                <div id="templateAllocations" class="template-allocations">
+                    <!-- Envelope allocation inputs will be generated here -->
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Save Template</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Manage Accounts -->
+    <div id="accountsModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <span class="close" onclick="closeModal('accountsModal')">&times;</span>
+            <h2>🏦 Manage Bank Accounts</h2>
+            
+            <button class="btn btn-primary" onclick="openCreateAccountModal()" style="margin-bottom: 20px;">
+                + Add Account
+            </button>
+            
+            <div id="accountsList">
+                <!-- Accounts will be rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Create/Edit Account -->
+    <div id="createAccountModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('createAccountModal')">&times;</span>
+            <h2 id="accountModalTitle">Add Bank Account</h2>
+            
+            <form id="accountForm">
+                <input type="hidden" id="accountId">
+                
+                <label>Account Name:</label>
+                <input type="text" id="accountName" placeholder="e.g., Main Checking" required>
+                
+                <label>Account Type:</label>
+                <select id="accountType">
+                    <option value="checking">Checking</option>
+                    <option value="savings">Savings</option>
+                    <option value="cash">Cash</option>
+                    <option value="credit">Credit Card</option>
+                    <option value="investment">Investment</option>
+                    <option value="other">Other</option>
+                </select>
+                
+                <label>Starting Balance:</label>
+                <input type="number" id="accountBalance" placeholder="0.00" step="0.01" required>
+                <small style="color: #718096; font-size: 0.85em; display: block; margin-top: 5px;">
+                    💡 Enter your current balance in this account
+                </small>
+                
+                <button type="submit" class="btn btn-primary">Save Account</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Month Menu -->
+    <div id="monthMenuModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <span class="close" onclick="closeModal('monthMenuModal')">&times;</span>
+            <h2>📅 Month Management</h2>
+            
+            <div class="current-month-info">
+                <h3>Current Month</h3>
+                <p id="monthMenuCurrentMonth" style="font-size: 1.3em; color: white; font-weight: 600;"></p>
+            </div>
+            
+            <div style="margin: 20px 0;">
+                <button class="btn btn-primary" onclick="openStartNewMonthModal()" style="width: 100%;">
+                    ➡️ Start New Month
+                </button>
+            </div>
+            
+            <hr style="margin: 20px 0; border: none; border-top: 2px solid #e2e8f0;">
+            
+            <h3>Month Archives</h3>
+            <div id="monthArchivesList">
+                <!-- Archives will be listed here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Start New Month -->
+    <div id="startNewMonthModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('startNewMonthModal')">&times;</span>
+            <h2>Start New Month</h2>
+            
+            <div class="info" style="margin-bottom: 20px;">
+                <strong>This will:</strong>
+                <ul style="margin: 10px 0 0 20px;">
+                    <li>Archive current month data</li>
+                    <li>Reset Funded and Spent to $0</li>
+                    <li>Keep your Planned amounts (budget template)</li>
+                    <li>Start fresh for the new month</li>
+                </ul>
+            </div>
+            
+            <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <h3 style="margin-bottom: 10px;">Rollover Options:</h3>
+                
+                <label style="display: flex; align-items: center; margin-bottom: 10px; cursor: pointer;">
+                    <input type="radio" name="rolloverOption" value="rollover" checked style="margin-right: 10px;">
+                    <div>
+                        <strong>Rollover Unspent Funds</strong>
+                        <div style="font-size: 0.9em; color: #718096;">Carry over unspent money to next month</div>
+                    </div>
+                </label>
+                
+                <label style="display: flex; align-items: center; cursor: pointer;">
+                    <input type="radio" name="rolloverOption" value="reset" style="margin-right: 10px;">
+                    <div>
+                        <strong>Reset to Zero</strong>
+                        <div style="font-size: 0.9em; color: #718096;">Start completely fresh (don't carry over)</div>
+                    </div>
+                </label>
+            </div>
+            
+            <div id="rolloverPreview" style="background: #edf2f7; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <!-- Preview will be shown here -->
+            </div>
+            
+            <button class="btn btn-primary" onclick="confirmStartNewMonth()" style="width: 100%;">
+                ✅ Confirm - Start New Month
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal: View Month Archive -->
+    <div id="viewArchiveModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <span class="close" onclick="closeModal('viewArchiveModal')">&times;</span>
+            <h2 id="archiveMonthTitle">Month Archive</h2>
+            
+            <div id="archiveContent">
+                <!-- Archive details will be shown here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Spending Templates -->
+    <div id="spendingTemplatesModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <span class="close" onclick="closeModal('spendingTemplatesModal')">&times;</span>
+            <h2>📋 Spending Templates</h2>
+            
+            <button class="btn btn-primary" onclick="openCreateSpendingTemplateModal()" style="margin-bottom: 20px;">
+                + Create Spending Template
+            </button>
+            
+            <div id="spendingTemplatesList">
+                <!-- Spending templates will be rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Create/Edit Spending Template -->
+    <div id="createSpendingTemplateModal" class="modal">
+        <div class="modal-content" style="max-width: 900px;">
+            <span class="close" onclick="closeModal('createSpendingTemplateModal')">&times;</span>
+            <h2 id="spendingTemplateModalTitle">Create Spending Template</h2>
+            
+            <form id="spendingTemplateForm">
+                <input type="hidden" id="spendingTemplateId">
+                
+                <label>Template Name:</label>
+                <input type="text" id="spendingTemplateName" placeholder="e.g., Monthly Bills" required style="margin-bottom: 20px;">
+                
+                <label>Reference Funding Template (optional):</label>
+                <select id="spendingTemplateReference" style="margin-bottom: 20px;">
+                    <option value="">None - Don't show funded amounts</option>
+                </select>
+                <small style="color: #718096; font-size: 0.85em; display: block; margin-top: -15px; margin-bottom: 20px;">
+                    💡 Select a funding template to see how much you plan to fund each envelope
+                </small>
+
+                <label>Recurring Expenses:</label>
+                
+                <div style="overflow-x: auto;">
+                    <table class="spending-template-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 30%;">Envelope</th>
+                                <th style="width: 15%;">Funded 📋</th>
+                                <th style="width: 15%;">Amount</th>
+                                <th style="width: 10%;">Day</th>
+                                <th style="width: 25%;">Account</th>
+                                <th style="width: 5%;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="spendingTemplateExpenses">
+                            <!-- Expense rows will be added here -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <button type="button" class="btn btn-secondary" onclick="addSpendingTemplateExpenseRow()" style="margin: 15px 0;">
+                    + Add Expense
+                </button>
+                
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Save Template</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Manage Categories -->
+    <div id="manageCategoriesModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <span class="close" onclick="closeModal('manageCategoriesModal')">&times;</span>
+            <h2>🏷️ Manage Categories</h2>
+            
+            <div id="categoriesList">
+                <!-- Categories will be rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Account Register -->
+    <div id="accountRegisterModal" class="modal">
+        <div class="modal-content" style="max-width: 1200px;">
+            <span class="close" onclick="closeAccountRegister()">&times;</span>
+            <h2 id="registerAccountName">Account Register</h2>
+            
+            <div id="registerSummary" class="register-summary">
+                <!-- Summary stats will go here -->
+            </div>
+            
+            <!-- Add Transaction Form (Inline) -->
+            <div class="register-add-row">
+                <form id="registerAddForm" onsubmit="addRegisterTransaction(event)">
+                    <input type="hidden" id="registerAccountId">
+                    <input type="date" id="registerDate" required>
+                    <select id="registerEnvelope" onchange="toggleRegisterDescription()">
+                        <option value="">Select...</option>
+                        <option value="_none">Not assigned</option>
+                        <option value="_income">💰 Income</option>
+                        <option value="_transfer">🔄 Transfer</option>
+                    </select>
+                    <input type="text" id="registerDescription" placeholder="Description" style="display: none;">
+                    <select id="registerTransferAccount" style="display: none;">
+                        <option value="">Select account...</option>
+                    </select>
+                    <input type="number" id="registerAmount" placeholder="Amount" step="0.01" required>
+                    <select id="registerStatus">
+                        <option value="cleared">✓ Cleared</option>
+                        <option value="pending">⏳ Pending</option>
+                    </select>
+                    <button type="submit" class="btn btn-primary btn-small">Add</button>
+                </form>
+            </div>
+            
+            <!-- Transactions Table -->
+            <div class="register-table-container">
+                <table class="register-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 12%;">Date</th>
+                            <th style="width: 30%;">Envelope/Description</th>
+                            <th style="width: 15%; text-align: right;">Amount</th>
+                            <th style="width: 15%; text-align: right;">Balance</th>
+                            <th style="width: 10%; text-align: center;">Status</th>
+                            <th style="width: 18%; text-align: center;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="registerTransactions">
+                        <!-- Transactions will be rendered here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Manage Budgets -->
+    <div id="manageBudgetsModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <span class="close" onclick="closeModal('manageBudgetsModal')">&times;</span>
+            <h2>📋 Manage Budgets</h2>
+            
+            <button class="btn btn-primary" onclick="openCreateBudgetModal()" style="margin-bottom: 20px;">
+                + Create New Budget
+            </button>
+            
+            <div id="budgetsList">
+                <!-- Budgets will be rendered here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Create/Edit Budget -->
+    <div id="createBudgetModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('createBudgetModal')">&times;</span>
+            <h2 id="budgetModalTitle">Create New Budget</h2>
+            
+            <form id="budgetForm" onsubmit="handleBudgetFormSubmit(event)">
+                <input type="hidden" id="budgetId">
+                
+                <label>Budget Name:</label>
+                <input type="text" id="budgetName" placeholder="e.g., My Home, Rental Property" required>
+                
+                <button type="submit" class="btn btn-primary">Save Budget</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- JavaScript Files -->
+    <script src="js/storage.js"></script>
+    <script src="js/envelopes.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
