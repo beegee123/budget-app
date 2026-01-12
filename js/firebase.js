@@ -29,15 +29,15 @@ const FirebaseSync = {
         console.log('🔥 Firebase initialized! User ID:', this.userId);
     },
     
-    // Get or generate unique user ID
+    // Get or generate unique user ID - NEW (everyone uses same ID):
     getUserId() {
-        let userId = localStorage.getItem('firebase_userId');
-        if (!userId) {
-            userId = 'user_' + Date.now().toString(36) + Math.random().toString(36).substr(2);
-            localStorage.setItem('firebase_userId', userId);
-            console.log('🆕 New user ID created:', userId);
-        }
-        return userId;
+        // Single family budget - everyone shares same cloud data
+        const familyAccountId = 'bee_family_budget_1210';
+        
+        // Store it locally too (not strictly necessary, but keeps consistency)
+        localStorage.setItem('firebase_userId', familyAccountId);
+        
+        return familyAccountId;
     },
     
     // Save all data to cloud
