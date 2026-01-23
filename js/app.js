@@ -1385,7 +1385,7 @@ function renderTemplateAllocationInputs() {
     
     // Add summary section at top
     const summaryHTML = `
-        <div id="templateSummary" style="background: #edf2f7; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+        <div id="templateSummary" style="background: #edf2f7; padding: 15px; border-radius: 8px; margin-bottom: 15px; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; text-align: center;">
                 <div>
                     <div style="font-size: 0.85em; color: #718096; margin-bottom: 5px;">Expected Amount</div>
