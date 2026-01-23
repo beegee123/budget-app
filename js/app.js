@@ -1382,28 +1382,8 @@ function renderTemplateAllocationInputs() {
             existingAllocations = template.allocations;
         }
     }
-    
-    // Add summary section at top
-    const summaryHTML = `
-        <div id="templateSummary" style="background: #edf2f7; padding: 15px; border-radius: 8px; margin-bottom: 15px; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; text-align: center;">
-                <div>
-                    <div style="font-size: 0.85em; color: #718096; margin-bottom: 5px;">Expected Amount</div>
-                    <div id="summaryExpected" style="font-size: 1.3em; font-weight: 600; color: #2d3748;">$0.00</div>
-                </div>
-                <div>
-                    <div style="font-size: 0.85em; color: #718096; margin-bottom: 5px;">Total Allocated</div>
-                    <div id="summaryAllocated" style="font-size: 1.3em; font-weight: 600; color: #667eea;">$0.00</div>
-                </div>
-                <div>
-                    <div style="font-size: 0.85em; color: #718096; margin-bottom: 5px;">Remaining</div>
-                    <div id="summaryRemaining" style="font-size: 1.3em; font-weight: 600; color: #48bb78;">$0.00</div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    container.innerHTML = summaryHTML + envelopes.map(env => `
+  
+    container.innerHTML = envelopes.map(env => `
         <div class="allocation-input-row">
             <label>${env.name}</label>
             <input 
