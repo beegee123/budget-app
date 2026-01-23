@@ -1383,19 +1383,74 @@ function renderTemplateAllocationInputs() {
         }
     }
     
-    container.innerHTML = envelopes.map(env => `
+    // Add summary section at top
+    const summaryHTML = `
+        <div id="templateSummary" style="background: #edf2f7; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; text-align: center;">
+                <div>
+                    <div style="font-size: 0.85em; color: #718096; margin-bottom: 5px;">Expected Amount</div>
+                    <div id="summaryExpected" style="font-size: 1.3em; font-weight: 600; color: #2d3748;">$0.00</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.85em; color: #718096; margin-bottom: 5px;">Total Allocated</div>
+                    <div id="summaryAllocated" style="font-size: 1.3em; font-weight: 600; color: #667eea;">$0.00</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.85em; color: #718096; margin-bottom: 5px;">Remaining</div>
+                    <div id="summaryRemaining" style="font-size: 1.3em; font-weight: 600; color: #48bb78;">$0.00</div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    container.innerHTML = summaryHTML + envelopes.map(env => `
         <div class="allocation-input-row">
             <label>${env.name}</label>
             <input 
                 type="number" 
                 id="alloc_${env.id}" 
+                class="template-allocation-input"
                 placeholder="0.00" 
                 step="0.01" 
                 min="0"
                 value="${existingAllocations[env.id] || ''}"
+                oninput="updateTemplateSummary()"
             >
         </div>
     `).join('');
+    
+    // Initial summary update
+    updateTemplateSummary();
+}
+
+function updateTemplateSummary() {
+    const expectedAmount = parseFloat(document.getElementById('templateAmount').value) || 0;
+    const envelopes = BudgetApp.getAllEnvelopes();
+    
+    let totalAllocated = 0;
+    envelopes.forEach(env => {
+        const input = document.getElementById(`alloc_${env.id}`);
+        if (input) {
+            totalAllocated += parseFloat(input.value || 0);
+        }
+    });
+    
+    const remaining = expectedAmount - totalAllocated;
+    
+    // Update display
+    document.getElementById('summaryExpected').textContent = BudgetApp.formatCurrency(expectedAmount);
+    document.getElementById('summaryAllocated').textContent = BudgetApp.formatCurrency(totalAllocated);
+    document.getElementById('summaryRemaining').textContent = BudgetApp.formatCurrency(remaining);
+    
+    // Color code remaining
+    const remainingEl = document.getElementById('summaryRemaining');
+    if (remaining < 0) {
+        remainingEl.style.color = '#f56565'; // Red - over budget
+    } else if (remaining === 0) {
+        remainingEl.style.color = '#48bb78'; // Green - perfect
+    } else {
+        remainingEl.style.color = '#ed8936'; // Orange - under allocated
+    }
 }
 
 function handleTemplateFormSubmit(e) {

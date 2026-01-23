@@ -107,10 +107,27 @@ const BudgetApp = {
             }
         });
 
-        // Mark all unallocated income as allocated
+        // 🔥 FIX: Only mark enough income to cover what was allocated
         const income = Storage.getIncome();
-        const unallocatedIds = income.filter(inc => !inc.allocated).map(inc => inc.id);
-        Storage.markIncomeAllocated(unallocatedIds);
+        const unallocatedIncome = income
+            .filter(inc => !inc.allocated)
+            .sort((a, b) => new Date(a.date) - new Date(b.date)); // Oldest first
+        
+        let remaining = totalToAllocate;
+        const idsToMark = [];
+        
+        // Mark income records until we've covered the allocated amount
+        for (const inc of unallocatedIncome) {
+            if (remaining <= 0) break;
+            
+            idsToMark.push(inc.id);
+            remaining -= inc.amount;
+        }
+        
+        // Only mark income if we actually allocated something
+        if (idsToMark.length > 0) {
+            Storage.markIncomeAllocated(idsToMark);
+        }
 
         return true;
     },
