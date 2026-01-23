@@ -76,7 +76,10 @@ const BudgetApp = {
 
     // Get available money that hasn't been allocated yet
     getAvailableToFund() {
-        return Storage.getUnallocatedIncome();
+        // Calculate as: Total Income - Total Funded
+        const totalIncome = Storage.getIncome().reduce((sum, inc) => sum + inc.amount, 0);
+        const totalFunded = this.getTotalFunded();
+        return totalIncome - totalFunded;
     },
 
     // ===== FUNDING OPERATIONS =====
@@ -106,28 +109,6 @@ const BudgetApp = {
                 }
             }
         });
-
-        // 🔥 FIX: Only mark enough income to cover what was allocated
-        const income = Storage.getIncome();
-        const unallocatedIncome = income
-            .filter(inc => !inc.allocated)
-            .sort((a, b) => new Date(a.date) - new Date(b.date)); // Oldest first
-        
-        let remaining = totalToAllocate;
-        const idsToMark = [];
-        
-        // Mark income records until we've covered the allocated amount
-        for (const inc of unallocatedIncome) {
-            if (remaining <= 0) break;
-            
-            idsToMark.push(inc.id);
-            remaining -= inc.amount;
-        }
-        
-        // Only mark income if we actually allocated something
-        if (idsToMark.length > 0) {
-            Storage.markIncomeAllocated(idsToMark);
-        }
 
         return true;
     },

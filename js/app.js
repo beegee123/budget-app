@@ -1424,7 +1424,8 @@ function renderTemplateAllocationInputs() {
 }
 
 function updateTemplateSummary() {
-    const expectedAmount = parseFloat(document.getElementById('templateAmount').value) || 0;
+    const expectedAmountInput = document.getElementById('templateAmount');
+    const expectedAmount = expectedAmountInput ? parseFloat(expectedAmountInput.value) || 0 : 0;
     const envelopes = BudgetApp.getAllEnvelopes();
     
     let totalAllocated = 0;
@@ -1437,19 +1438,30 @@ function updateTemplateSummary() {
     
     const remaining = expectedAmount - totalAllocated;
     
-    // Update display
-    document.getElementById('summaryExpected').textContent = BudgetApp.formatCurrency(expectedAmount);
-    document.getElementById('summaryAllocated').textContent = BudgetApp.formatCurrency(totalAllocated);
-    document.getElementById('summaryRemaining').textContent = BudgetApp.formatCurrency(remaining);
+    // Update display (with null checks)
+    const summaryExpected = document.getElementById('summaryExpected');
+    const summaryAllocated = document.getElementById('summaryAllocated');
+    const summaryRemaining = document.getElementById('summaryRemaining');
     
-    // Color code remaining
-    const remainingEl = document.getElementById('summaryRemaining');
-    if (remaining < 0) {
-        remainingEl.style.color = '#f56565'; // Red - over budget
-    } else if (remaining === 0) {
-        remainingEl.style.color = '#48bb78'; // Green - perfect
-    } else {
-        remainingEl.style.color = '#ed8936'; // Orange - under allocated
+    if (summaryExpected) {
+        summaryExpected.textContent = BudgetApp.formatCurrency(expectedAmount);
+    }
+    
+    if (summaryAllocated) {
+        summaryAllocated.textContent = BudgetApp.formatCurrency(totalAllocated);
+    }
+    
+    if (summaryRemaining) {
+        summaryRemaining.textContent = BudgetApp.formatCurrency(remaining);
+        
+        // Color code remaining
+        if (remaining < 0) {
+            summaryRemaining.style.color = '#f56565'; // Red - over budget
+        } else if (remaining === 0) {
+            summaryRemaining.style.color = '#48bb78'; // Green - perfect
+        } else {
+            summaryRemaining.style.color = '#ed8936'; // Orange - under allocated
+        }
     }
 }
 
