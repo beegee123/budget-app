@@ -1743,11 +1743,6 @@ function applyTemplateNow(templateId) {
 
 // ===== INCOME MANAGEMENT =====
 
-function openManageIncomeModal() {
-    openModal('manageIncomeModal');
-    renderIncomeRecordsList();
-}
-
 function renderIncomeRecordsList() {
     const container = document.getElementById('incomeRecordsList');
     const income = BudgetApp.getAllIncome();
@@ -1814,7 +1809,7 @@ function renderIncomeRecordsList() {
     }
     
     return `
-        <div class="income-record-card ${statusClass === 'allocated' ? 'allocated' : ''}">
+        <div class="income-record-card ${statusClass === 'allocated' ? 'allocated' : ''}" onclick="openEditIncomeModal('${inc.id}')">
             <div class="income-record-header">
                 <div>
                     <div class="income-record-source">${inc.source}</div>
@@ -1823,27 +1818,18 @@ function renderIncomeRecordsList() {
                 </div>
                 <div class="income-record-date">${formatDate(inc.date)}</div>
             </div>
-            
+
             <div class="income-record-amount">
                 ${BudgetApp.formatCurrency(inc.amount)}
             </div>
-            
+
             <div class="income-record-status ${statusClass}">
                 ${statusText}
-            </div>
-            
-            <div class="income-record-actions">
-                <button class="btn btn-info btn-small" onclick="openEditIncomeModal('${inc.id}')">
-                    ✏️ Edit
-                </button>
-                <button class="btn btn-delete btn-small" onclick="deleteIncomeConfirm('${inc.id}')">
-                    🗑️ Delete
-                </button>
             </div>
         </div>
     `;
 }).join('');
-    
+
 container.innerHTML = summaryHTML + '<div class="income-records-list">' + recordsHTML + '</div>';
 }
 
@@ -1875,6 +1861,16 @@ function openEditIncomeModal(incomeId) {
     }
     
     openModal('editIncomeModal');
+}
+
+async function deleteIncomeFromEditModal() {
+    const incomeId = document.getElementById('editIncomeId').value;
+    await deleteIncomeConfirm(incomeId);
+
+    // Only close the edit modal if the record was actually deleted (user may have cancelled)
+    if (!Storage.getIncome().find(inc => inc.id === incomeId)) {
+        closeModal('editIncomeModal');
+    }
 }
 
 async function handleEditIncome(e) {
@@ -2754,6 +2750,10 @@ function switchTab(tabName) {
             // Re-entering the tab: keep showing the previously selected account
             openAccountRegister(currentRegisterAccountId);
         }
+    }
+
+    if (tabName === 'income') {
+        renderIncomeRecordsList();
     }
 }
 

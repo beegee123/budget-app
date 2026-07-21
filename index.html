@@ -46,6 +46,9 @@
                 <button class="tab-btn" data-tab="accounts" onclick="switchTab('accounts')">
                     🏦 Accounts
                 </button>
+                <button class="tab-btn" data-tab="income" onclick="switchTab('income')">
+                    💵 Income
+                </button>
             </div>
         </header>
 
@@ -77,9 +80,6 @@
             <button class="btn btn-primary" onclick="openModal('envelopeModal')">
                 + Create Envelope
             </button>
-            <button class="btn btn-secondary" onclick="openModal('incomeModal')">
-                💵 Add Income
-            </button>
             <button class="btn btn-tertiary" onclick="openModal('fundingModal')">
                 🔥 Fund Envelopes
             </button>
@@ -101,7 +101,6 @@
                     ⚙️ Tools ▼
                 </button>
                 <div id="toolsDropdown" class="dropdown-content">
-                    <a href="#" onclick="openManageIncomeModal(); closeAllDropdowns(); return false;">📊 Manage Income</a>
                     <a href="#" onclick="openManageCategoriesModal(); closeAllDropdowns(); return false;">🏷️ Manage Categories</a>
                     <a href="#" onclick="openCashFlowModal(); closeAllDropdowns(); return false;">📊 Cash Flow</a>
                     <div class="dropdown-divider"></div>
@@ -270,6 +269,17 @@
             </div>
         </div>
         <!-- End Accounts Tab Content -->
+
+        <!-- Income Tab Content -->
+        <div id="income-view" class="tab-content">
+            <button class="btn btn-secondary" onclick="openModal('incomeModal')" style="margin-bottom: 20px;">
+                💵 Add Income
+            </button>
+            <div id="incomeRecordsList">
+                <!-- Income records will be rendered here -->
+            </div>
+        </div>
+        <!-- End Income Tab Content -->
     </div>
 
     <!-- Modal: Create Envelope -->
@@ -382,18 +392,6 @@
         </div>
     </div>
 
-    <!-- Modal: Manage Income -->
-    <div id="manageIncomeModal" class="modal">
-        <div class="modal-content" style="max-width: 800px;">
-            <span class="close" onclick="closeModal('manageIncomeModal')">&times;</span>
-            <h2>📊 Manage Income Records</h2>
-            
-            <div id="incomeRecordsList">
-                <!-- Income records will be rendered here -->
-            </div>
-        </div>
-    </div>
-
     <!-- Modal: Edit Income -->
     <div id="editIncomeModal" class="modal">
         <div class="modal-content">
@@ -440,7 +438,10 @@
                     ⚠️ <strong>Warning:</strong> This income has already been allocated to envelopes. Editing may affect your budget.
                 </div>
                 
-                <button type="submit" class="btn btn-primary">Save Changes</button>
+                <div style="display: flex; gap: 10px;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Save Changes</button>
+                    <button type="button" class="btn btn-delete" onclick="deleteIncomeFromEditModal()">🗑️ Delete</button>
+                </div>
             </form>
         </div>
     </div>
