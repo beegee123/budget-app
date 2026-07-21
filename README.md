@@ -17,25 +17,30 @@ You can only spend money that's been **funded**. The dashboard at the top of the
 ## Getting started
 
 1. **Create envelopes** — click **+ Create Envelope**, give it a name, a monthly planned amount, and a category (e.g. Needs/Wants/Savings, or your own).
-2. **Add income** — click **💵 Add Income** each time you get paid. Record the source, amount, date, and frequency.
+2. **Add income** — switch to the **💵 Income** tab and click **+ Add Income** each time you get paid. Record the source, amount, date, and frequency.
 3. **Fund your envelopes** — click **🔥 Fund Envelopes** to distribute your available income across envelopes. This is the "give every dollar a job" step.
-4. **Spend from an envelope** — open an envelope and click to log a purchase against it. The envelope's Spent total goes up and its remaining balance (Funded − Spent) goes down.
+4. **Spend from an envelope** — click **💳 Spend** on an envelope's row to log a purchase against it. The envelope's Spent total goes up and its remaining balance (Funded − Spent) goes down.
 
 That's the whole loop: **add income → fund envelopes → spend from envelopes**, repeated every payday. Once that feels familiar and your paycheck split / regular bills stop changing, set up **Templates** (below) so steps 2-4 take one click instead of manual re-entry each time.
+
+## The tabs
+
+The app is organized into five tabs, always visible at the top: **💰 Budget** (envelopes + dashboard), **📊 Reports**, **🏦 Accounts**, **💵 Income**, and **📊 Cash Flow**. Anything you'd do often lives in a tab; less-frequent setup tasks (Templates, Categories, multi-budget management, backup) live under the **📋 Templates** and **⚙️ Tools** menus instead.
 
 ## Feature guide
 
 ### Envelopes
-Envelopes are listed in a table, with Planned/Funded/Spent/Balance columns and per-row action buttons:
+Envelopes are listed in a table on the **💰 Budget** tab, with Planned/Funded/Spent/Balance columns. Each row keeps just one button visible plus a **⋮** menu for everything else:
 - **💳 Spend** — log a purchase against that envelope (its Spent goes up, Balance goes down).
-- **📋 History** — view that envelope's transaction history.
-- **✏️ Edit** — change its name, planned amount, or category. **🗑️** deletes it (and its transaction history).
+- **⋮** menu — **📋 History** (view that envelope's transaction history), **✏️ Edit** (change its name, planned amount, or category), and **🗑️ Delete** (removes it and its transaction history).
 - The **Planned** amount is also directly click-to-edit inline, without opening the Edit modal.
 - Use the category filter bar to view envelopes grouped by category (e.g. only "Wants").
 
 ### Income & allocation status
-- **💵 Add Income** logs a paycheck or other income with a source, amount, date, frequency, and optionally which bank account it landed in.
-- **⚙️ Tools → 📊 Manage Income** lists every income record and shows its allocation status:
+The **💵 Income** tab shows every income record as a tile (two per row), plus summary stats (Total Income / Allocated / Unallocated / Income Records) at the top:
+- Click **+ Add Income** (in this tab) to log a paycheck or other income — source, amount, date, frequency, and optionally which bank account it landed in.
+- Click any income tile to open it for editing — that same screen also has a **🗑️ Delete** button, so you won't find separate Edit/Delete buttons cluttering the tile itself.
+- Each tile shows its allocation status:
   - **○ Not yet allocated** — none of this income has been funded to envelopes yet
   - **◐ Partially allocated** — part of it has been funded
   - **✓ Fully allocated** — all of it has been funded
@@ -75,10 +80,10 @@ If you pay the same rent, subscriptions, or utility bills every month, list them
 7. Edit or delete a spending template anytime from the Spending Templates list.
 
 ### Accounts & the register
-**🏦 Accounts** lets you track actual bank/cash accounts alongside your envelopes. Each account has its own **register** (a transaction ledger) where you can:
+**🏦 Accounts** tracks actual bank/cash accounts alongside your envelopes. The tab is split into two panels: your account list on the left, and the selected account's **register** (transaction ledger) on the right — click any account to load its register without leaving the tab. In the register you can:
 - Log transactions as **cleared** (money has actually moved) or **pending** (expected but not yet happened)
 - Transfer money between accounts
-- See a running account balance
+- See a running account balance, with the table growing to fit however much history you have (no cramped inner scrollbox)
 
 This is a second, complementary view of your money: envelopes track *what it's for*, accounts track *where it physically sits*.
 
@@ -86,7 +91,7 @@ This is a second, complementary view of your money: envelopes track *what it's f
 Switch to the **📊 Reports** tab for a monthly overview: total income vs. allocated vs. spent, a spending-by-category breakdown, your top spending envelopes, and a **Budget Performance** bar for each envelope showing percent of its planned amount spent (turns amber near 90%, red past 100%).
 
 ### Cash Flow Calendar
-**⚙️ Tools → 📊 Cash Flow** projects your bank balance forward 30 days based on upcoming income and pending transactions, so you can spot a low-balance day before it happens. Enter your current bank balance once to anchor the projection.
+The **📊 Cash Flow** tab projects your bank balance forward 30 days based on upcoming income and pending transactions, so you can spot a low-balance day before it happens. Enter your current bank balance once to anchor the projection.
 
 ### Categories
 **⚙️ Tools → 🏷️ Manage Categories** lets you rename or remove the category labels used to group envelopes (e.g. Needs / Wants / Savings, or your own custom set).
@@ -106,6 +111,16 @@ Your data lives in the browser (localStorage), tied to this device and browser. 
 - **💾 Export Data / 📂 Import Data** — save/load a JSON backup file
 - **☁️ Save to Cloud / ⬇️ Load from Cloud** — manually back up to (or restore from) cloud storage, so you can move data to another device
 - **🚨 Reset All Data** — wipe everything and start over (irreversible — export a backup first if in doubt)
+
+## Restarting after a break
+The app doesn't know real time passed while you were away — it stays on whichever month you last left it on, and income/transactions are never auto-deleted or scoped to a month. If you're picking the app back up after weeks or months off and want to **keep your existing envelopes**, do this before resuming the normal loop:
+
+1. **Roll the month forward once.** Click **📅 → Start New Month** and choose **Reset to Zero** (not rollover) — stale Funded/Spent amounts from months ago aren't a meaningful carryover. This keeps every envelope's name, category, and planned amount exactly as you left it, archives your last active month for the record, and sets "today" as the current month.
+2. **Check the 💵 Income tab for stale records.** Since income persists forever and "Available to Fund" is calculated from *all* income ever entered minus *all* funding ever done, any old income still marked "Not yet allocated" will inflate that number. Delete records for money you've already dealt with in real life, or leave them if it's genuinely still unallocated cash.
+3. **If you use 🏦 Accounts**, reconcile each account's balance with a one-time adjustment transaction dated today for the real-vs-calculated difference, rather than editing "Starting Balance" (which shifts the gap instead of closing it, since starting balance stacks with all historical income/transactions on that account).
+4. **Resume the normal loop** — add today's income, fund envelopes (or apply a saved Funding Template), spend as usual.
+
+Steps 1 and 4 are the real requirements; 2 and 3 are optional data-hygiene checks — skip them if you don't mind the historical figures being a little noisy.
 
 ## Tips
 - Fund envelopes right after you get paid so "Available to Fund" reflects reality.

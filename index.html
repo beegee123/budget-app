@@ -14,11 +14,21 @@
 <body>
     <div class="container">
         <!-- Header -->
-        <!-- Header -->
         <header>
-            <h1>💰 Smart Envelopes</h1>
-            <p class="subtitle">Plan, Fund, and Track Your Money</p>
-            
+            <div class="ledger-band">
+                <div class="brand-row">
+                    <svg class="brand-seal" viewBox="0 0 44 44" fill="none" aria-hidden="true">
+                        <circle cx="22" cy="22" r="20" stroke="currentColor" stroke-width="1.5"/>
+                        <circle cx="22" cy="22" r="15.5" stroke="currentColor" stroke-width="1"/>
+                        <text x="22" y="28" text-anchor="middle" font-size="17" fill="currentColor">S</text>
+                    </svg>
+                    <div class="brand-text">
+                        <h1>Smart Envelopes</h1>
+                        <p class="subtitle">Where the money goes.</p>
+                    </div>
+                </div>
+            </div>
+
             <!-- Budget Selector -->
             <div class="budget-selector">
                 <label for="budgetDropdown">Budget:</label>
@@ -26,31 +36,36 @@
                     <!-- Populated by JavaScript -->
                 </select>
                 <button class="btn-manage-budgets" onclick="openManageBudgetsModal()" title="Manage Budgets">
-                    📋
+                    Manage
                 </button>
             </div>
-            
+
             <div class="month-display">
                 <span id="currentMonthDisplay"></span>
-                <button class="btn-month-menu" onclick="openMonthMenu()">📅</button>
+                <button class="btn-month-menu" onclick="openMonthMenu()">Change</button>
             </div>
-            
+
             <!-- Tab Navigation -->
             <div class="tab-navigation">
                 <button class="tab-btn active" data-tab="budget" onclick="switchTab('budget')">
-                    💰 Budget
+                    <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M4 8l8-4 8 4v11a1 1 0 01-1 1H5a1 1 0 01-1-1z"/><path d="M4 8l8 5 8-5"/></svg></span>
+                    Budget
                 </button>
                 <button class="tab-btn" data-tab="reports" onclick="switchTab('reports')">
-                    📊 Reports
+                    <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M4 20V10M12 20V4M20 20v-7"/></svg></span>
+                    Reports
                 </button>
                 <button class="tab-btn" data-tab="accounts" onclick="switchTab('accounts')">
-                    🏦 Accounts
+                    <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><rect x="4" y="10" width="16" height="9"/><path d="M4 10l8-6 8 6"/></svg></span>
+                    Accounts
                 </button>
                 <button class="tab-btn" data-tab="income" onclick="switchTab('income')">
-                    💵 Income
+                    <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><rect x="3" y="6" width="18" height="12" rx="1.5"/><circle cx="12" cy="12" r="2.6"/></svg></span>
+                    Income
                 </button>
                 <button class="tab-btn" data-tab="cashflow" onclick="switchTab('cashflow')">
-                    📊 Cash Flow
+                    <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M3 13h4l2-6 4 12 2-8 2 4h4"/></svg></span>
+                    Cash Flow
                 </button>
             </div>
         </header>
