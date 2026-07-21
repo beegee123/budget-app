@@ -244,6 +244,34 @@ header h1 {
     margin: 0 4px;
 }
 
+.actions-cell .dropdown {
+    margin: 0 4px;
+}
+
+.btn-row-menu {
+    background: #edf2f7;
+    color: #4a5568;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.1em;
+    line-height: 1;
+    vertical-align: middle;
+    transition: background 0.2s ease;
+}
+
+.btn-row-menu:hover {
+    background: #e2e8f0;
+}
+
+.dropdown-content.row-dropdown-content {
+    left: auto;
+    right: 0;
+    min-width: 160px;
+}
+
 .empty-state {
     text-align: center;
     padding: 60px 20px;
@@ -1226,11 +1254,6 @@ header h1 {
     }
 }
 
-/* Cash Flow Modal */
-.cashflow-modal .modal-content {
-    max-width: 900px;
-}
-
 .balance-input-section {
     background: #f7fafc;
     padding: 20px;
@@ -1467,10 +1490,6 @@ header h1 {
 }
 
 @media (max-width: 768px) {
-    .cashflow-modal .modal-content {
-        max-width: 95%;
-    }
-    
     .timeline-day {
         flex-direction: column;
     }
@@ -2638,8 +2657,6 @@ header h1 {
 
 /* Register Table */
 .register-table-container {
-    max-height: 600px;
-    overflow-y: auto;
     border: 1px solid #e2e8f0;
     border-radius: 8px;
 }

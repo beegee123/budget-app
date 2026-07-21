@@ -374,15 +374,15 @@ function renderEnvelopes() {
                                 <button class="btn btn-secondary btn-small" onclick="openSpendModal('${env.id}')">
                                     💳 Spend
                                 </button>
-                                <button class="btn btn-primary btn-small" onclick="openTransactionHistory('${env.id}')">
-                                    📋 History
-                                </button>
-                                <button class="btn btn-info btn-small" onclick="openEditEnvelopeModal('${env.id}')">
-                                    ✏️ Edit
-                                </button>
-                                <button class="btn btn-delete btn-small" onclick="deleteEnvelopeConfirm('${env.id}')">
-                                    🗑️
-                                </button>
+                                <div class="dropdown">
+                                    <button class="btn-row-menu" onclick="toggleDropdown('envMenu_${env.id}')" aria-label="More actions">⋮</button>
+                                    <div id="envMenu_${env.id}" class="dropdown-content row-dropdown-content">
+                                        <a href="#" onclick="openTransactionHistory('${env.id}'); closeAllDropdowns(); return false;">📋 History</a>
+                                        <a href="#" onclick="openEditEnvelopeModal('${env.id}'); closeAllDropdowns(); return false;">✏️ Edit</a>
+                                        <div class="dropdown-divider"></div>
+                                        <a href="#" onclick="deleteEnvelopeConfirm('${env.id}'); closeAllDropdowns(); return false;">🗑️ Delete</a>
+                                    </div>
+                                </div>
                             </td>
                         </tr>
                     `;
@@ -1027,50 +1027,6 @@ function formatDate(dateString) {
 }
 
 // ===== CASH FLOW CALENDAR =====
-
-function openCashFlowModal() {
-    const currentBalance = Storage.getBankBalance();
-    
-    const modalHTML = `
-        <div id="cashFlowModal" class="modal cashflow-modal" style="display: block;">
-            <div class="modal-content">
-                <span class="close" onclick="closeCashFlowModal()">&times;</span>
-                <h2>📊 Cash Flow Calendar - Next 30 Days</h2>
-                
-                <!-- Bank Balance Input -->
-                <div class="balance-input-section">
-                    <div class="balance-input-row">
-                        <label>Current Bank Balance:</label>
-                        <input 
-                            type="number" 
-                            id="bankBalanceInput" 
-                            value="${currentBalance}" 
-                            step="0.01" 
-                            placeholder="0.00"
-                        >
-                        <button class="btn btn-primary" onclick="saveBankBalance()">
-                            💾 Save Balance
-                        </button>
-                    </div>
-                </div>
-                
-                <div id="cashFlowContent">
-                    <!-- Content will be generated here -->
-                </div>
-            </div>
-        </div>
-    `;
-    
-    document.body.insertAdjacentHTML('beforeend', modalHTML);
-    renderCashFlowTimeline();
-}
-
-function closeCashFlowModal() {
-    const modal = document.getElementById('cashFlowModal');
-    if (modal) {
-        modal.remove();
-    }
-}
 
 function saveBankBalance() {
     const input = document.getElementById('bankBalanceInput');
@@ -2703,7 +2659,7 @@ function closeAllDropdowns(exceptId = null) {
 
 // Close dropdowns when clicking outside
 document.addEventListener('click', function(event) {
-    if (!event.target.matches('.btn-menu')) {
+    if (!event.target.matches('.btn-menu, .btn-row-menu')) {
         closeAllDropdowns();
     }
 });
@@ -2754,6 +2710,11 @@ function switchTab(tabName) {
 
     if (tabName === 'income') {
         renderIncomeRecordsList();
+    }
+
+    if (tabName === 'cashflow') {
+        document.getElementById('bankBalanceInput').value = Storage.getBankBalance();
+        renderCashFlowTimeline();
     }
 }
 
