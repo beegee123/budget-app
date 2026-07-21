@@ -62,9 +62,10 @@ const BudgetApp = {
             amount: parseFloat(amount),
             date: date,
             allocated: false,
+            allocatedAmount: 0, // How much of this income has actually been funded to envelopes
             accountId: accountId || null
         };
-        
+
         Storage.addIncome(income);
         return income;
     },
@@ -110,7 +111,34 @@ const BudgetApp = {
             }
         });
 
+        // Record which income this funding actually came from (oldest income first),
+        // so per-income allocation status is a stored fact, not re-derived at render time
+        if (totalToAllocate > 0) {
+            this._recordIncomeAllocation(totalToAllocate);
+        }
+
         return true;
+    },
+
+    // Consume income records oldest-first, marking how much of each has been funded to envelopes
+    _recordIncomeAllocation(amount) {
+        const income = Storage.getIncome();
+        const sorted = [...income].sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        let remaining = amount;
+        for (const inc of sorted) {
+            if (remaining <= 0) break;
+            const alreadyAllocated = inc.allocatedAmount || 0;
+            const unallocated = inc.amount - alreadyAllocated;
+            if (unallocated <= 0) continue;
+
+            const toApply = Math.min(unallocated, remaining);
+            inc.allocatedAmount = alreadyAllocated + toApply;
+            inc.allocated = inc.allocatedAmount >= inc.amount;
+            remaining -= toApply;
+        }
+
+        Storage.saveIncome(income);
     },
 
     // ===== TRANSACTION OPERATIONS =====

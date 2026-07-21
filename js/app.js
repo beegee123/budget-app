@@ -1652,11 +1652,11 @@ function renderIncomeRecordsList() {
     // Sort by date (newest first)
     income.sort((a, b) => new Date(b.date) - new Date(a.date));
     
-    // Calculate summary stats
+    // Calculate summary stats from the per-record allocatedAmount (a stored fact set
+    // when funds are allocated, not re-derived from the current envelope-funded total)
     const totalIncome = income.reduce((sum, inc) => sum + inc.amount, 0);
-    const allocatedIncome = income.filter(inc => inc.allocated).reduce((sum, inc) => sum + inc.amount, 0);
-    const unallocatedIncome = income.filter(inc => !inc.allocated).reduce((sum, inc) => sum + inc.amount, 0);
-    
+    const totalAllocated = income.reduce((sum, inc) => sum + (inc.allocatedAmount || 0), 0);
+    const unallocatedIncome = totalIncome - totalAllocated;
     // Build summary
     const summaryHTML = `
         <div class="income-summary-stats">
@@ -1666,7 +1666,7 @@ function renderIncomeRecordsList() {
             </div>
             <div class="income-stat-item">
                 <div class="label">Allocated</div>
-                <div class="value">${BudgetApp.formatCurrency(allocatedIncome)}</div>
+                <div class="value">${BudgetApp.formatCurrency(totalAllocated)}</div>
             </div>
             <div class="income-stat-item">
                 <div class="label">Unallocated</div>
@@ -1678,45 +1678,60 @@ function renderIncomeRecordsList() {
             </div>
         </div>
     `;
-    
+
     // Build income records list
     const recordsHTML = income.map(inc => {
-        const frequencyLabel = getFrequencyLabel(inc.frequency);
-        const account = inc.accountId ? BudgetApp.getAccount(inc.accountId) : null;
-        const accountLabel = account ? `🏦 ${account.name}` : '';
-        
-        return `
-            <div class="income-record-card ${inc.allocated ? 'allocated' : ''}">
-                <div class="income-record-header">
-                    <div>
-                        <div class="income-record-source">${inc.source}</div>
-                        ${inc.frequency ? `<div style="color: #718096; font-size: 0.9em; margin-top: 4px;">${frequencyLabel}</div>` : ''}
-                        ${accountLabel ? `<div style="color: #3182ce; font-size: 0.9em; margin-top: 4px;">${accountLabel}</div>` : ''}
-                    </div>
-                    <div class="income-record-date">${formatDate(inc.date)}</div>
-                </div>
-                
-                <div class="income-record-amount">
-                    ${BudgetApp.formatCurrency(inc.amount)}
-                </div>
-                
-                <div class="income-record-status ${inc.allocated ? 'allocated' : 'unallocated'}">
-                    ${inc.allocated ? '✓ Allocated to envelopes' : '○ Not yet allocated'}
-                </div>
-                
-                <div class="income-record-actions">
-                    <button class="btn btn-info btn-small" onclick="openEditIncomeModal('${inc.id}')">
-                        ✏️ Edit
-                    </button>
-                    <button class="btn btn-delete btn-small" onclick="deleteIncomeConfirm('${inc.id}')">
-                        🗑️ Delete
-                    </button>
-                </div>
-            </div>
-        `;
-    }).join('');
+    const frequencyLabel = getFrequencyLabel(inc.frequency);
+    const account = inc.accountId ? BudgetApp.getAccount(inc.accountId) : null;
+    const accountLabel = account ? `🏦 ${account.name}` : '';
+
+    const allocatedAmount = inc.allocatedAmount || 0;
+
+    // Determine status
+    let statusClass, statusText;
+    if (allocatedAmount === 0) {
+        statusClass = 'unallocated';
+        statusText = '○ Not yet allocated';
+    } else if (allocatedAmount >= inc.amount) {
+        statusClass = 'allocated';
+        statusText = '✓ Fully allocated';
+    } else {
+        statusClass = 'partial';
+        statusText = `◐ Partially allocated (${BudgetApp.formatCurrency(allocatedAmount)} of ${BudgetApp.formatCurrency(inc.amount)})`;
+    }
     
-    container.innerHTML = summaryHTML + '<div class="income-records-list">' + recordsHTML + '</div>';
+    return `
+        <div class="income-record-card ${statusClass === 'allocated' ? 'allocated' : ''}">
+            <div class="income-record-header">
+                <div>
+                    <div class="income-record-source">${inc.source}</div>
+                    ${inc.frequency ? `<div style="color: #718096; font-size: 0.9em; margin-top: 4px;">${frequencyLabel}</div>` : ''}
+                    ${accountLabel ? `<div style="color: #3182ce; font-size: 0.9em; margin-top: 4px;">${accountLabel}</div>` : ''}
+                </div>
+                <div class="income-record-date">${formatDate(inc.date)}</div>
+            </div>
+            
+            <div class="income-record-amount">
+                ${BudgetApp.formatCurrency(inc.amount)}
+            </div>
+            
+            <div class="income-record-status ${statusClass}">
+                ${statusText}
+            </div>
+            
+            <div class="income-record-actions">
+                <button class="btn btn-info btn-small" onclick="openEditIncomeModal('${inc.id}')">
+                    ✏️ Edit
+                </button>
+                <button class="btn btn-delete btn-small" onclick="deleteIncomeConfirm('${inc.id}')">
+                    🗑️ Delete
+                </button>
+            </div>
+        </div>
+    `;
+}).join('');
+    
+container.innerHTML = summaryHTML + '<div class="income-records-list">' + recordsHTML + '</div>';
 }
 
 function openEditIncomeModal(incomeId) {
@@ -1740,7 +1755,7 @@ function openEditIncomeModal(incomeId) {
     
     // Show warning if already allocated
     const warningDiv = document.getElementById('editIncomeWarning');
-    if (income.allocated) {
+    if ((income.allocatedAmount || 0) > 0) {
         warningDiv.style.display = 'block';
     } else {
         warningDiv.style.display = 'none';
@@ -1775,25 +1790,29 @@ function handleEditIncome(e) {
     }
     
     const oldIncome = allIncome[incomeIndex];
-    
+    const oldAllocatedAmount = oldIncome.allocatedAmount || 0;
+
     // Warn if allocated and amount is decreasing
-    if (oldIncome.allocated && amount < oldIncome.amount) {
+    if (oldAllocatedAmount > 0 && amount < oldIncome.amount) {
         const difference = oldIncome.amount - amount;
         if (!confirm(`⚠️ Warning: You're decreasing allocated income by ${BudgetApp.formatCurrency(difference)}. This may cause your "Available to Fund" to go negative. Continue?`)) {
             return;
         }
     }
-    
-    // Update the income record
+
+    // Update the income record, clamping allocatedAmount so it can never exceed the new amount
+    const newAllocatedAmount = Math.min(oldAllocatedAmount, amount);
     allIncome[incomeIndex] = {
         ...oldIncome,
         source: source,
         frequency: frequency,
         amount: amount,
         date: date,
-        accountId: accountId || null // Add this line
+        accountId: accountId || null, // Add this line
+        allocatedAmount: newAllocatedAmount,
+        allocated: newAllocatedAmount >= amount
     };
-    
+
     Storage.saveIncome(allIncome);
     
     // Update UI
@@ -1817,8 +1836,8 @@ function deleteIncomeConfirm(incomeId) {
     confirmMsg += `Amount: ${BudgetApp.formatCurrency(income.amount)}\n`;
     confirmMsg += `Date: ${formatDate(income.date)}\n\n`;
     
-    if (income.allocated) {
-        confirmMsg += `⚠️ WARNING: This income was already allocated to envelopes. Deleting it will make your "Available to Fund" go negative by ${BudgetApp.formatCurrency(income.amount)}.\n\n`;
+    if ((income.allocatedAmount || 0) > 0) {
+        confirmMsg += `⚠️ WARNING: This income was already allocated to envelopes. Deleting it will make your "Available to Fund" go negative by ${BudgetApp.formatCurrency(income.allocatedAmount)}.\n\n`;
         confirmMsg += `This cannot be undone. Continue?`;
     } else {
         confirmMsg += `This cannot be undone.`;
@@ -3110,7 +3129,7 @@ function openAccountRegister(accountId) {
     // Set account name in modal title
     document.getElementById('registerAccountName').textContent = `📋 ${account.name} - Register`;
     document.getElementById('registerAccountId').value = accountId;
-    
+
     // Set today's date
     document.getElementById('registerDate').valueAsDate = new Date();
     
@@ -3125,6 +3144,140 @@ function openAccountRegister(accountId) {
     
     // Open modal
     openModal('accountRegisterModal');
+}
+
+function populateRegisterTemplateSelector(accountId) {
+    const templates = BudgetApp.getAllSpendingTemplates();
+
+    if (templates.length === 0) {
+        return;
+    }
+
+    // Add template loader section to register summary
+    const summary = document.getElementById('registerSummary');
+
+    const templateHTML = `
+        <div class="register-summary-item" style="grid-column: 1 / -1; border-top: 2px solid #cbd5e0; padding-top: 15px; margin-top: 15px;">
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: center;">
+                <select id="registerTemplateSelect" style="flex: 1; max-width: 300px; padding: 8px; border: 2px solid #e2e8f0; border-radius: 8px;">
+                    <option value="">Load spending template...</option>
+                    ${templates.map(t => `<option value="${t.id}">${t.name}</option>`).join('')}
+                </select>
+                <button class="btn btn-secondary btn-small" onclick="loadTemplateAsPending('${accountId}')">
+                    ⏳ Load as Pending
+                </button>
+            </div>
+            <div style="font-size: 0.85em; color: #718096; text-align: center; margin-top: 5px;">
+                Load recurring transactions as pending, then mark cleared as they happen
+            </div>
+        </div>
+    `;
+    
+    summary.insertAdjacentHTML('beforeend', templateHTML);
+}
+
+// Build a YYYY-MM-DD string for a given day-of-month in the current local month,
+// clamping to the month's last day instead of letting Date roll over into the next month
+function resolveDayOfMonthDate(dayOfMonth) {
+    const now = new Date();
+    const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const day = Math.min(dayOfMonth, lastDayOfMonth);
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    return `${now.getFullYear()}-${month}-${String(day).padStart(2, '0')}`;
+}
+
+function loadTemplateAsPending(currentAccountId) {
+    const select = document.getElementById('registerTemplateSelect');
+    const templateId = select.value;
+    
+    if (!templateId) {
+        alert('Please select a template');
+        return;
+    }
+    
+    const template = BudgetApp.getSpendingTemplate(templateId);
+    if (!template) return;
+    
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    let successCount = 0;
+    let skippedCount = 0;
+    let failedCount = 0;
+    const accountsSummary = {};
+    const allTransactions = Storage.getTransactions();
+
+    // Create all template expenses as pending transactions
+    template.expenses.forEach(expense => {
+        try {
+            // Use the account specified in the template, or current account as fallback
+            const targetAccountId = expense.accountId || currentAccountId;
+
+            // Use template date if specified, otherwise today
+            const dateToUse = expense.dayOfMonth ? resolveDayOfMonthDate(expense.dayOfMonth) : today;
+
+            // Check if this transaction already exists (avoid duplicates), regardless of
+            // whether it's still pending or has since been marked cleared
+            const existing = allTransactions.find(t =>
+                t.envelopeId === expense.envelopeId &&
+                t.amount === expense.amount &&
+                t.date === dateToUse &&
+                t.accountId === targetAccountId
+            );
+
+            if (!existing) {
+                BudgetApp.addAccountTransaction(
+                    targetAccountId,
+                    expense.amount,
+                    expense.description,
+                    dateToUse,
+                    'pending',
+                    'expense',
+                    expense.envelopeId
+                );
+                successCount++;
+
+                // Track which accounts got transactions
+                const account = BudgetApp.getAccount(targetAccountId);
+                if (account) {
+                    accountsSummary[account.name] = (accountsSummary[account.name] || 0) + 1;
+                }
+            } else {
+                skippedCount++;
+            }
+        } catch (error) {
+            console.error('Error loading expense:', error);
+            failedCount++;
+        }
+    });
+
+    // Refresh register
+    renderAccountRegister();
+
+    // Build summary message
+    let message = `✅ Loaded ${successCount} pending transactions!\n\n`;
+
+    if (Object.keys(accountsSummary).length > 0) {
+        message += 'Applied to accounts:\n';
+        Object.entries(accountsSummary).forEach(([accountName, count]) => {
+            message += `  • ${accountName}: ${count} transaction(s)\n`;
+        });
+        message += '\n';
+    }
+
+    if (skippedCount > 0) {
+        message += `ℹ️ Skipped ${skippedCount} duplicate(s)\n\n`;
+    }
+
+    if (failedCount > 0) {
+        message += `⚠️ ${failedCount} expense(s) failed to load. Check the console for details.\n\n`;
+    }
+
+    message += 'Mark them cleared (✓) as they happen.';
+
+    alert(message);
+
+    // Reset selector
+    select.value = '';
 }
 
 function closeAccountRegister() {
@@ -3315,6 +3468,9 @@ function renderAccountRegister() {
     `;
     
     document.getElementById('registerSummary').innerHTML = summaryHTML;
+    
+    // Add template selector after summary is rendered
+    populateRegisterTemplateSelector(accountId);
     
     // Render transactions
     const tbody = document.getElementById('registerTransactions');

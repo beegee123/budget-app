@@ -1592,6 +1592,11 @@ header h1 {
     color: #22543d;
 }
 
+.income-record-status.partial {
+    background: #fef3c7;
+    color: #92400e;
+}
+
 .income-record-actions {
     display: flex;
     gap: 10px;
