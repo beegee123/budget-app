@@ -21,13 +21,16 @@ You can only spend money that's been **funded**. The dashboard at the top of the
 3. **Fund your envelopes** — click **🔥 Fund Envelopes** to distribute your available income across envelopes. This is the "give every dollar a job" step.
 4. **Spend from an envelope** — open an envelope and click to log a purchase against it. The envelope's Spent total goes up and its remaining balance (Funded − Spent) goes down.
 
-That's the whole loop: **add income → fund envelopes → spend from envelopes**, repeated every payday.
+That's the whole loop: **add income → fund envelopes → spend from envelopes**, repeated every payday. Once that feels familiar and your paycheck split / regular bills stop changing, set up **Templates** (below) so steps 2-4 take one click instead of manual re-entry each time.
 
 ## Feature guide
 
 ### Envelopes
-- Click an envelope to see its balance and log transactions against it (spend, or view history).
-- Edit an envelope's name, planned amount, or category, or delete it (deleting also removes its transaction history).
+Envelopes are listed in a table, with Planned/Funded/Spent/Balance columns and per-row action buttons:
+- **💳 Spend** — log a purchase against that envelope (its Spent goes up, Balance goes down).
+- **📋 History** — view that envelope's transaction history.
+- **✏️ Edit** — change its name, planned amount, or category. **🗑️** deletes it (and its transaction history).
+- The **Planned** amount is also directly click-to-edit inline, without opening the Edit modal.
 - Use the category filter bar to view envelopes grouped by category (e.g. only "Wants").
 
 ### Income & allocation status
@@ -42,11 +45,34 @@ That's the whole loop: **add income → fund envelopes → spend from envelopes*
 ### Fund Envelopes
 Click **🔥 Fund Envelopes** to see how much income is available and distribute it across envelopes in one step. You don't have to fund an envelope's full planned amount at once — partial funding is fine, and unfunded amounts just roll forward as "Available to Fund."
 
-### Funding Templates
-If your paycheck gets split into envelopes the same way every time, save that split as a **Funding Template** (Templates → Funding Templates). Applying a template instantly runs that same allocation plan again instead of re-entering it by hand.
+### Templates: set up once, apply in one click
+Templates exist purely to save time on the parts of your budget that repeat every month — the same paycheck split, the same list of bills. You do the data entry once; after that, applying a template is a single click instead of redoing the manual steps. There are two kinds, for the two recurring routines in the app: **funding** your envelopes, and **recording** your recurring bills.
 
-### Spending Templates
-For recurring bills (rent, subscriptions, utilities), create a **Spending Template** (Templates → Spending Templates) listing each recurring expense, its envelope, amount, and day of the month. From an account's register, you can **"Load as Pending"** to drop all of a template's expenses in as pending transactions for the month, then mark each one cleared (✓) as it actually happens — a quick way to pre-stage a month's known bills.
+#### Funding Templates — for the paycheck-to-envelope split you always make
+If a given paycheck gets divided across envelopes the same way every time, save that split once and apply it every payday instead of re-entering it in **🔥 Fund Envelopes** by hand.
+
+1. Go to **📋 Templates → Funding Templates → + Create New Template**.
+2. Name it after the paycheck it represents (e.g. "Job 1 - Biweekly").
+3. Set **Day of Month** — the day this paycheck usually lands (1-31).
+4. Set **Expected Amount** — the paycheck's usual total.
+5. Under **Allocation Plan**, enter how much should go to each envelope. Watch the **Remaining** figure in the summary — get it to $0.00 so the whole paycheck is assigned somewhere.
+6. Click **Save Template**.
+7. From then on, each payday: open **Templates → Funding Templates** and click **⚡ Apply Now** on the template — it funds every envelope per your saved plan instantly, no manual entry needed.
+8. Edit or delete a template anytime from the same list if your split changes.
+
+#### Spending Templates — for the recurring bills you record every month
+If you pay the same rent, subscriptions, or utility bills every month, list them once as a Spending Template instead of adding each one as a separate transaction every time.
+
+1. Go to **📋 Templates → Spending Templates → + Create Spending Template**.
+2. Name it (e.g. "Monthly Bills").
+3. Optional: pick a **Reference Funding Template** so the form shows how much you *planned* to fund each envelope, as a sanity check against what you're about to spend.
+4. Click **+ Add Expense** for each recurring bill, and for each row set: which **envelope** it comes out of, the **amount**, the **day of month** it's due, and (optionally) which **account** it's paid from. Repeat for every recurring bill.
+5. Click **Save Template**.
+6. Each month, apply it one of these ways:
+   - **⚡ Apply Now (Today's Date)** (from the Spending Templates list) — records every expense immediately, dated today, as already spent.
+   - **📅 Apply with Template Dates** (same list) — records every expense using each bill's own configured day of month instead of today.
+   - **⏳ Load as Pending** (from an account's Register, in the **🏦 Accounts** tab) — the gentler option: stages every expense as a **pending** transaction instead of marking it spent right away, so you can check them off (mark cleared ✓) as each bill actually clears your account.
+7. Edit or delete a spending template anytime from the Spending Templates list.
 
 ### Accounts & the register
 **🏦 Accounts** lets you track actual bank/cash accounts alongside your envelopes. Each account has its own **register** (a transaction ledger) where you can:

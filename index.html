@@ -43,6 +43,9 @@
                 <button class="tab-btn" data-tab="reports" onclick="switchTab('reports')">
                     📊 Reports
                 </button>
+                <button class="tab-btn" data-tab="accounts" onclick="switchTab('accounts')">
+                    🏦 Accounts
+                </button>
             </div>
         </header>
 
@@ -80,10 +83,7 @@
             <button class="btn btn-tertiary" onclick="openModal('fundingModal')">
                 🔥 Fund Envelopes
             </button>
-            <button class="btn btn-account" onclick="openAccountsModal()">
-                🏦 Accounts
-            </button>
-            
+
             <!-- Templates Dropdown -->
             <div class="dropdown">
                 <button class="btn btn-menu" onclick="toggleDropdown('templatesDropdown')">
@@ -196,6 +196,80 @@
             </section>
         </div>
         <!-- End Reports Tab Content -->
+
+        <!-- Accounts Tab Content -->
+        <div id="accounts-view" class="tab-content">
+            <div class="accounts-layout">
+                <!-- LEFT: account list -->
+                <div class="accounts-list-panel">
+                    <button class="btn btn-primary" onclick="openCreateAccountModal()" style="margin-bottom: 20px;">
+                        + Add Account
+                    </button>
+                    <div id="accountsList">
+                        <!-- Accounts will be rendered here -->
+                    </div>
+                </div>
+
+                <!-- RIGHT: selected account's register -->
+                <div class="accounts-detail-panel">
+                    <div id="accountRegisterEmptyState" class="register-empty-state">
+                        <h3>No accounts yet</h3>
+                        <p>Add your first bank account to start tracking transactions.</p>
+                    </div>
+                    <div id="accountRegisterContent" style="display: none;">
+                        <h2 id="registerAccountName">Account Register</h2>
+
+                        <div id="registerSummary" class="register-summary">
+                            <!-- Summary stats will go here -->
+                        </div>
+
+                        <!-- Add Transaction Form (Inline) -->
+                        <div class="register-add-row">
+                            <form id="registerAddForm" onsubmit="addRegisterTransaction(event)">
+                                <input type="hidden" id="registerAccountId">
+                                <input type="date" id="registerDate" required>
+                                <select id="registerEnvelope" onchange="toggleRegisterDescription()">
+                                    <option value="">Select...</option>
+                                    <option value="_none">Not assigned</option>
+                                    <option value="_income">💰 Income</option>
+                                    <option value="_transfer">🔄 Transfer</option>
+                                </select>
+                                <input type="text" id="registerDescription" placeholder="Description" style="display: none;">
+                                <select id="registerTransferAccount" style="display: none;">
+                                    <option value="">Select account...</option>
+                                </select>
+                                <input type="number" id="registerAmount" placeholder="Amount" step="0.01" required>
+                                <select id="registerStatus">
+                                    <option value="cleared">✓ Cleared</option>
+                                    <option value="pending">⏳ Pending</option>
+                                </select>
+                                <button type="submit" class="btn btn-primary btn-small">Add</button>
+                            </form>
+                        </div>
+
+                        <!-- Transactions Table -->
+                        <div class="register-table-container">
+                            <table class="register-table">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 12%;">Date</th>
+                                        <th style="width: 30%;">Envelope/Description</th>
+                                        <th style="width: 15%; text-align: right;">Amount</th>
+                                        <th style="width: 15%; text-align: right;">Balance</th>
+                                        <th style="width: 10%; text-align: center;">Status</th>
+                                        <th style="width: 18%; text-align: center;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="registerTransactions">
+                                    <!-- Transactions will be rendered here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- End Accounts Tab Content -->
     </div>
 
     <!-- Modal: Create Envelope -->
@@ -446,22 +520,6 @@
         </div>
     </div>
 
-    <!-- Modal: Manage Accounts -->
-    <div id="accountsModal" class="modal">
-        <div class="modal-content" style="max-width: 800px;">
-            <span class="close" onclick="closeModal('accountsModal')">&times;</span>
-            <h2>🏦 Manage Bank Accounts</h2>
-            
-            <button class="btn btn-primary" onclick="openCreateAccountModal()" style="margin-bottom: 20px;">
-                + Add Account
-            </button>
-            
-            <div id="accountsList">
-                <!-- Accounts will be rendered here -->
-            </div>
-        </div>
-    </div>
-
     <!-- Modal: Create/Edit Account -->
     <div id="createAccountModal" class="modal">
         <div class="modal-content">
@@ -656,60 +714,6 @@
         </div>
     </div>
 
-    <!-- Modal: Account Register -->
-    <div id="accountRegisterModal" class="modal">
-        <div class="modal-content" style="max-width: 1200px;">
-            <span class="close" onclick="closeAccountRegister()">&times;</span>
-            <h2 id="registerAccountName">Account Register</h2>
-            
-            <div id="registerSummary" class="register-summary">
-                <!-- Summary stats will go here -->
-            </div>
-            
-            <!-- Add Transaction Form (Inline) -->
-            <div class="register-add-row">
-                <form id="registerAddForm" onsubmit="addRegisterTransaction(event)">
-                    <input type="hidden" id="registerAccountId">
-                    <input type="date" id="registerDate" required>
-                    <select id="registerEnvelope" onchange="toggleRegisterDescription()">
-                        <option value="">Select...</option>
-                        <option value="_none">Not assigned</option>
-                        <option value="_income">💰 Income</option>
-                        <option value="_transfer">🔄 Transfer</option>
-                    </select>
-                    <input type="text" id="registerDescription" placeholder="Description" style="display: none;">
-                    <select id="registerTransferAccount" style="display: none;">
-                        <option value="">Select account...</option>
-                    </select>
-                    <input type="number" id="registerAmount" placeholder="Amount" step="0.01" required>
-                    <select id="registerStatus">
-                        <option value="cleared">✓ Cleared</option>
-                        <option value="pending">⏳ Pending</option>
-                    </select>
-                    <button type="submit" class="btn btn-primary btn-small">Add</button>
-                </form>
-            </div>
-            
-            <!-- Transactions Table -->
-            <div class="register-table-container">
-                <table class="register-table">
-                    <thead>
-                        <tr>
-                            <th style="width: 12%;">Date</th>
-                            <th style="width: 30%;">Envelope/Description</th>
-                            <th style="width: 15%; text-align: right;">Amount</th>
-                            <th style="width: 15%; text-align: right;">Balance</th>
-                            <th style="width: 10%; text-align: center;">Status</th>
-                            <th style="width: 18%; text-align: center;">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="registerTransactions">
-                        <!-- Transactions will be rendered here -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
 
     <!-- Modal: Manage Budgets -->
     <div id="manageBudgetsModal" class="modal">

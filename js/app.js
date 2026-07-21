@@ -1987,11 +1987,6 @@ function getFrequencyLabel(frequency) {
 
 // ===== ACCOUNT MANAGEMENT =====
 
-function openAccountsModal() {
-    openModal('accountsModal');
-    renderAccountsList();
-}
-
 function renderAccountsList() {
     const container = document.getElementById('accountsList');
     const accounts = BudgetApp.getAllAccounts();
@@ -2023,34 +2018,23 @@ function renderAccountsList() {
         </div>
     `;
     
-    // Build accounts list
+    // Build accounts list. Balance isn't repeated here — the register panel on the
+    // right already shows the selected account's balance in more detail.
     const accountsHTML = accounts.map(acc => {
-        const balance = BudgetApp.getAccountBalance(acc.id);
-        const balanceClass = balance < 0 ? 'negative' : '';
-        
+        const isSelected = acc.id === currentRegisterAccountId;
+
         return `
-            <div class="account-card ${acc.type}">
+            <div class="account-card ${acc.type} ${isSelected ? 'selected' : ''}" onclick="openAccountRegister('${acc.id}')">
                 <div class="account-header">
                     <div class="account-name">${acc.name}</div>
                     <div class="account-type-badge">${acc.type}</div>
                 </div>
-                
-                <div class="account-balance ${balanceClass}">
-                    ${BudgetApp.formatCurrency(balance)}
-                </div>
-                
-                <div class="account-details">
-                    <div>Starting: ${BudgetApp.formatCurrency(acc.balance)}</div>
-                </div>
-                
+
                 <div class="account-actions">
-                    <button class="btn btn-primary btn-small" onclick="openAccountRegister('${acc.id}')">
-                        📋 Open Register
-                    </button>
-                    <button class="btn btn-info btn-small" onclick="editAccount('${acc.id}')">
+                    <button class="btn btn-info btn-small" onclick="event.stopPropagation(); editAccount('${acc.id}')">
                         ✏️ Edit
                     </button>
-                    <button class="btn btn-delete btn-small" onclick="deleteAccountConfirm('${acc.id}')">
+                    <button class="btn btn-delete btn-small" onclick="event.stopPropagation(); deleteAccountConfirm('${acc.id}')">
                         🗑️ Delete
                     </button>
                 </div>
@@ -2081,6 +2065,7 @@ function handleAccountFormSubmit(e) {
         return;
     }
     
+    let newAccount = null;
     if (accountId) {
         // Update existing account
         BudgetApp.updateAccount(accountId, {
@@ -2091,13 +2076,17 @@ function handleAccountFormSubmit(e) {
         alert('✅ Account updated!');
     } else {
         // Create new account
-        BudgetApp.createAccount(name, type, balance);
+        newAccount = BudgetApp.createAccount(name, type, balance);
         alert('✅ Account created!');
     }
-    
+
     closeModal('createAccountModal');
     renderAccountsList();
     updateDashboard(); // Refresh dashboard in case it shows account totals
+
+    if (newAccount) {
+        openAccountRegister(newAccount.id);
+    }
 }
 
 function editAccount(accountId) {
@@ -2164,7 +2153,17 @@ async function deleteAccountConfirm(accountId) {
     BudgetApp.deleteAccount(accountId);
     renderAccountsList();
     updateDashboard();
-    
+
+    if (currentRegisterAccountId === accountId) {
+        const remaining = BudgetApp.getAllAccounts();
+        if (remaining.length > 0) {
+            openAccountRegister(remaining[0].id);
+        } else {
+            currentRegisterAccountId = null;
+            showAccountRegisterEmptyState();
+        }
+    }
+
     alert('Account deleted.');
 }
 
@@ -2741,6 +2740,21 @@ function switchTab(tabName) {
         populateMonthSelector();
         renderReports();
     }
+
+    if (tabName === 'accounts') {
+        const accounts = BudgetApp.getAllAccounts();
+        if (accounts.length === 0) {
+            currentRegisterAccountId = null;
+            showAccountRegisterEmptyState();
+            renderAccountsList();
+        } else if (!currentRegisterAccountId || !BudgetApp.getAccount(currentRegisterAccountId)) {
+            // Auto-select the first account, or recover from a since-deleted selection
+            openAccountRegister(accounts[0].id); // also re-renders the list, highlighting the selection
+        } else {
+            // Re-entering the tab: keep showing the previously selected account
+            openAccountRegister(currentRegisterAccountId);
+        }
+    }
 }
 
 // ===== REPORTS SYSTEM =====
@@ -3239,24 +3253,34 @@ function openAccountRegister(accountId) {
         return;
     }
     
-    // Set account name in modal title
+    // Set account name in register header
     document.getElementById('registerAccountName').textContent = `📋 ${account.name} - Register`;
     document.getElementById('registerAccountId').value = accountId;
 
     // Set today's date
     document.getElementById('registerDate').valueAsDate = new Date();
-    
+
     // Populate envelope dropdown
     populateRegisterEnvelopeDropdown();
-    
+
     // Populate transfer account dropdown
     populateRegisterTransferDropdown(accountId);
-    
+
     // Render transactions
     renderAccountRegister();
-    
-    // Open modal
-    openModal('accountRegisterModal');
+
+    showAccountRegisterContent();
+    renderAccountsList(); // refresh so the selected card's highlight stays in sync
+}
+
+function showAccountRegisterEmptyState() {
+    document.getElementById('accountRegisterEmptyState').style.display = 'block';
+    document.getElementById('accountRegisterContent').style.display = 'none';
+}
+
+function showAccountRegisterContent() {
+    document.getElementById('accountRegisterEmptyState').style.display = 'none';
+    document.getElementById('accountRegisterContent').style.display = 'block';
 }
 
 function populateRegisterTemplateSelector(accountId) {
@@ -3391,12 +3415,6 @@ function loadTemplateAsPending(currentAccountId) {
 
     // Reset selector
     select.value = '';
-}
-
-function closeAccountRegister() {
-    closeModal('accountRegisterModal');
-    currentRegisterAccountId = null;
-    document.getElementById('registerAddForm').reset();
 }
 
 function populateRegisterEnvelopeDropdown() {
