@@ -17,6 +17,113 @@ const AppState = {
     }
 };
 
+// ===== NOTIFICATIONS (toast + in-app confirm, replacing native alert/confirm) =====
+
+function ensureToastContainer() {
+    let container = document.getElementById('toastContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toastContainer';
+        document.body.appendChild(container);
+    }
+    return container;
+}
+
+function showToast(message, durationMs = 4000) {
+    const container = ensureToastContainer();
+
+    let type = 'info';
+    if (message.startsWith('✅')) type = 'success';
+    else if (message.startsWith('❌') || message.startsWith('🚨')) type = 'error';
+    else if (message.startsWith('⚠️')) type = 'warning';
+
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+
+    const text = document.createElement('span');
+    text.className = 'toast-message';
+    text.innerText = message;
+    toast.appendChild(text);
+
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'toast-close';
+    closeBtn.innerHTML = '&times;';
+    closeBtn.onclick = () => dismissToast(toast);
+    toast.appendChild(closeBtn);
+
+    container.appendChild(toast);
+
+    // Force layout so the enter transition actually plays instead of starting in the "shown" state
+    requestAnimationFrame(() => toast.classList.add('show'));
+
+    toast._dismissTimer = setTimeout(() => dismissToast(toast), durationMs);
+    return toast;
+}
+
+function dismissToast(toast) {
+    if (!toast || !toast.isConnected) return;
+    clearTimeout(toast._dismissTimer);
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 250);
+}
+
+// Shim the native alert() with a non-blocking toast. Every existing alert(...) call site
+// (many, using the ✅/❌/⚠️ prefix convention already in their messages) picks up the new
+// styling automatically since the function signature is identical.
+function alert(message) {
+    showToast(message);
+}
+
+function ensureConfirmDialog() {
+    let overlay = document.getElementById('confirmDialogOverlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'confirmDialogOverlay';
+        overlay.className = 'confirm-overlay';
+        overlay.innerHTML = `
+            <div class="confirm-dialog">
+                <div class="confirm-message" id="confirmDialogMessage"></div>
+                <div class="confirm-actions">
+                    <button type="button" class="btn btn-secondary" id="confirmDialogCancel">Cancel</button>
+                    <button type="button" class="btn btn-delete" id="confirmDialogOk">Confirm</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+    }
+    return overlay;
+}
+
+// Async, styled replacement for the native confirm(). Resolves true/false; callers must await it.
+function showConfirm(message) {
+    const overlay = ensureConfirmDialog();
+    const messageEl = document.getElementById('confirmDialogMessage');
+    const okBtn = document.getElementById('confirmDialogOk');
+    const cancelBtn = document.getElementById('confirmDialogCancel');
+
+    messageEl.innerText = message;
+
+    return new Promise((resolve) => {
+        function cleanup(result) {
+            overlay.classList.remove('active');
+            okBtn.removeEventListener('click', onOk);
+            cancelBtn.removeEventListener('click', onCancel);
+            overlay.removeEventListener('click', onOverlayClick);
+            resolve(result);
+        }
+        function onOk() { cleanup(true); }
+        function onCancel() { cleanup(false); }
+        function onOverlayClick(e) { if (e.target === overlay) cleanup(false); }
+
+        okBtn.addEventListener('click', onOk);
+        cancelBtn.addEventListener('click', onCancel);
+        overlay.addEventListener('click', onOverlayClick);
+
+        overlay.classList.add('active');
+    });
+}
+
 // ===== INITIALIZATION =====
 
 // Run when page loads
@@ -296,9 +403,9 @@ function updateCategorySuggestions() {
     datalist.innerHTML = categories.map(cat => `<option value="${cat}">`).join('');
 }
 
-function deleteEnvelopeConfirm(envelopeId) {
+async function deleteEnvelopeConfirm(envelopeId) {
     const envelope = BudgetApp.getEnvelope(envelopeId);
-    if (confirm(`Delete "${envelope.name}" envelope? This cannot be undone.`)) {
+    if (await showConfirm(`Delete "${envelope.name}" envelope? This cannot be undone.`)) {
         BudgetApp.deleteEnvelope(envelopeId);
         renderEnvelopes();
         updateDashboard();
@@ -382,40 +489,40 @@ function openEditEnvelopeModal(envelopeId) {
     openModal('editEnvelopeModal');
 }
 
-function handleEditIncome(e) {
+async function handleEditIncome(e) {
     e.preventDefault();
-    
+
     const id = document.getElementById('editIncomeId').value;
     const source = document.getElementById('editIncomeSource').value.trim();
     const frequency = document.getElementById('editIncomeFrequency').value;
     const amount = parseFloat(document.getElementById('editIncomeAmount').value);
     const date = document.getElementById('editIncomeDate').value;
-    
+
     // Validate
     if (!source || !frequency || isNaN(amount) || amount <= 0 || !date) {
         alert('Please fill in all fields with valid values');
         return;
     }
-    
+
     // Get current income record
     const allIncome = Storage.getIncome();
     const incomeIndex = allIncome.findIndex(inc => inc.id === id);
-    
+
     if (incomeIndex === -1) {
         alert('Income record not found');
         return;
     }
-    
+
     const oldIncome = allIncome[incomeIndex];
-    
+
     // Warn if allocated and amount is decreasing
     if (oldIncome.allocated && amount < oldIncome.amount) {
         const difference = oldIncome.amount - amount;
-        if (!confirm(`⚠️ Warning: You're decreasing allocated income by ${BudgetApp.formatCurrency(difference)}. This may cause your "Available to Fund" to go negative. Continue?`)) {
+        if (!(await showConfirm(`⚠️ Warning: You're decreasing allocated income by ${BudgetApp.formatCurrency(difference)}. This may cause your "Available to Fund" to go negative. Continue?`))) {
             return;
         }
     }
-    
+
     // Update the income record
     allIncome[incomeIndex] = {
         ...oldIncome,
@@ -562,7 +669,13 @@ function openModal(modalId) {
 }
 
 function closeModal(modalId) {
-    document.getElementById(modalId).style.display = 'none';
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+    modal.classList.add('closing');
+    setTimeout(() => {
+        modal.style.display = 'none';
+        modal.classList.remove('closing');
+    }, 200);
 }
 
 function prepareFundingModal() {
@@ -869,8 +982,8 @@ function closeTransactionHistoryModal() {
     }
 }
 
-function deleteTransaction(transactionId, envelopeId) {
-    if (!confirm('Delete this transaction? This cannot be undone.')) {
+async function deleteTransaction(transactionId, envelopeId) {
+    if (!(await showConfirm('Delete this transaction? This cannot be undone.'))) {
         return;
     }
     
@@ -1179,19 +1292,19 @@ function exportData() {
     }
 }
 
-function importData(event) {
+async function importData(event) {
     const file = event.target.files[0];
-    
+
     if (!file) {
         return;
     }
-    
+
     // Confirm before overwriting existing data
     const confirmMsg = '⚠️ WARNING: Importing will REPLACE all current data!\n\n' +
                       'Current data will be lost unless you have a backup.\n\n' +
                       'Continue with import?';
-    
-    if (!confirm(confirmMsg)) {
+
+    if (!(await showConfirm(confirmMsg))) {
         // Reset file input
         event.target.value = '';
         return;
@@ -1445,7 +1558,7 @@ function updateTemplateSummary() {
     }
 }
 
-function handleTemplateFormSubmit(e) {
+async function handleTemplateFormSubmit(e) {
     e.preventDefault();
     
     const templateId = document.getElementById('templateId').value;
@@ -1481,7 +1594,7 @@ function handleTemplateFormSubmit(e) {
     
     // Warn if over-allocated
     if (totalAllocated > expectedAmount) {
-        if (!confirm(`Warning: Total allocations (${BudgetApp.formatCurrency(totalAllocated)}) exceed expected amount (${BudgetApp.formatCurrency(expectedAmount)}). Continue anyway?`)) {
+        if (!(await showConfirm(`Warning: Total allocations (${BudgetApp.formatCurrency(totalAllocated)}) exceed expected amount (${BudgetApp.formatCurrency(expectedAmount)}). Continue anyway?`))) {
             return;
         }
     }
@@ -1602,9 +1715,9 @@ function editTemplate(templateId) {
     openModal('createTemplateModal');
 }
 
-function deleteTemplateConfirm(templateId) {
+async function deleteTemplateConfirm(templateId) {
     const template = BudgetApp.getTemplate(templateId);
-    if (confirm(`Delete template "${template.name}"? This cannot be undone.`)) {
+    if (await showConfirm(`Delete template "${template.name}"? This cannot be undone.`)) {
         BudgetApp.deleteTemplate(templateId);
         renderTemplatesList();
     }
@@ -1764,38 +1877,38 @@ function openEditIncomeModal(incomeId) {
     openModal('editIncomeModal');
 }
 
-function handleEditIncome(e) {
+async function handleEditIncome(e) {
     e.preventDefault();
-    
+
     const id = document.getElementById('editIncomeId').value;
     const source = document.getElementById('editIncomeSource').value.trim();
     const frequency = document.getElementById('editIncomeFrequency').value;
     const amount = parseFloat(document.getElementById('editIncomeAmount').value);
     const date = document.getElementById('editIncomeDate').value;
     const accountId = document.getElementById('editIncomeAccount').value; // Add this line
-    
+
     // Validate
     if (!source || !frequency || isNaN(amount) || amount <= 0 || !date) {
         alert('Please fill in all fields with valid values');
         return;
     }
-    
+
     // Get current income record
     const allIncome = Storage.getIncome();
     const incomeIndex = allIncome.findIndex(inc => inc.id === id);
-    
+
     if (incomeIndex === -1) {
         alert('Income record not found');
         return;
     }
-    
+
     const oldIncome = allIncome[incomeIndex];
     const oldAllocatedAmount = oldIncome.allocatedAmount || 0;
 
     // Warn if allocated and amount is decreasing
     if (oldAllocatedAmount > 0 && amount < oldIncome.amount) {
         const difference = oldIncome.amount - amount;
-        if (!confirm(`⚠️ Warning: You're decreasing allocated income by ${BudgetApp.formatCurrency(difference)}. This may cause your "Available to Fund" to go negative. Continue?`)) {
+        if (!(await showConfirm(`⚠️ Warning: You're decreasing allocated income by ${BudgetApp.formatCurrency(difference)}. This may cause your "Available to Fund" to go negative. Continue?`))) {
             return;
         }
     }
@@ -1823,27 +1936,27 @@ function handleEditIncome(e) {
     alert('✅ Income record updated!');
 }
 
-function deleteIncomeConfirm(incomeId) {
+async function deleteIncomeConfirm(incomeId) {
     const income = Storage.getIncome().find(inc => inc.id === incomeId);
-    
+
     if (!income) {
         alert('Income record not found');
         return;
     }
-    
+
     let confirmMsg = `Delete income record?\n\n`;
     confirmMsg += `Source: ${income.source}\n`;
     confirmMsg += `Amount: ${BudgetApp.formatCurrency(income.amount)}\n`;
     confirmMsg += `Date: ${formatDate(income.date)}\n\n`;
-    
+
     if ((income.allocatedAmount || 0) > 0) {
         confirmMsg += `⚠️ WARNING: This income was already allocated to envelopes. Deleting it will make your "Available to Fund" go negative by ${BudgetApp.formatCurrency(income.allocatedAmount)}.\n\n`;
         confirmMsg += `This cannot be undone. Continue?`;
     } else {
         confirmMsg += `This cannot be undone.`;
     }
-    
-    if (!confirm(confirmMsg)) {
+
+    if (!(await showConfirm(confirmMsg))) {
         return;
     }
     
@@ -2004,7 +2117,7 @@ function editAccount(accountId) {
     openModal('createAccountModal');
 }
 
-function deleteAccountConfirm(accountId) {
+async function deleteAccountConfirm(accountId) {
     const account = BudgetApp.getAccount(accountId);
     
     // Check if account is being used
@@ -2024,11 +2137,11 @@ function deleteAccountConfirm(accountId) {
     }
     
     confirmMsg += `This cannot be undone. Continue?`;
-    
-    if (!confirm(confirmMsg)) {
+
+    if (!(await showConfirm(confirmMsg))) {
         return;
     }
-    
+
     // Remove account assignment from income and transactions
     if (incomeCount > 0) {
         income.forEach(inc => {
@@ -2202,15 +2315,15 @@ function updateRolloverPreview() {
     }
 }
 
-function confirmStartNewMonth() {
+async function confirmStartNewMonth() {
     const rolloverOption = document.querySelector('input[name="rolloverOption"]:checked').value;
     const rollover = rolloverOption === 'rollover';
-    
-    const confirmMsg = rollover 
+
+    const confirmMsg = rollover
         ? 'Start new month and rollover unspent funds?\n\nThis will archive the current month and carry over unspent money.'
         : 'Start new month and reset everything to zero?\n\nThis will archive the current month. Unspent funds will NOT carry over.';
-    
-    if (!confirm(confirmMsg)) {
+
+    if (!(await showConfirm(confirmMsg))) {
         return;
     }
     
@@ -2507,16 +2620,16 @@ function editSpendingTemplate(templateId) {
     openModal('createSpendingTemplateModal');
 }
 
-function deleteSpendingTemplateConfirm(templateId) {
+async function deleteSpendingTemplateConfirm(templateId) {
     const template = BudgetApp.getSpendingTemplate(templateId);
-    if (confirm(`Delete spending template "${template.name}"? This cannot be undone.`)) {
+    if (await showConfirm(`Delete spending template "${template.name}"? This cannot be undone.`)) {
         BudgetApp.deleteSpendingTemplate(templateId);
         renderSpendingTemplatesList();
     }
 }
 
-function applySpendingTemplateNow(templateId) {
-    if (!confirm('Record all expenses from this template with today\'s date?')) {
+async function applySpendingTemplateNow(templateId) {
+    if (!(await showConfirm('Record all expenses from this template with today\'s date?'))) {
         return;
     }
     
@@ -2544,8 +2657,8 @@ function applySpendingTemplateNow(templateId) {
     }
 }
 
-function applySpendingTemplateWithDates(templateId) {
-    if (!confirm('Record all expenses using their template dates (day of month)?')) {
+async function applySpendingTemplateWithDates(templateId) {
+    if (!(await showConfirm('Record all expenses using their template dates (day of month)?'))) {
         return;
     }
     
@@ -3064,7 +3177,7 @@ function populateFundingTemplateSelector() {
 }
 
 // Function to populate rows when funding template is selected
-function populateRowsFromFundingTemplate(templateId) {
+async function populateRowsFromFundingTemplate(templateId) {
     if (!templateId) {
         // If "None" selected, just clear to one empty row
         const container = document.getElementById('spendingTemplateExpenses');
@@ -3080,7 +3193,7 @@ function populateRowsFromFundingTemplate(templateId) {
     // Confirm if there are already rows
     const existingRows = document.querySelectorAll('#spendingTemplateExpenses tr');
     if (existingRows.length > 0) {
-        const proceed = confirm('Replace existing rows with envelopes from this funding template?');
+        const proceed = await showConfirm('Replace existing rows with envelopes from this funding template?');
         if (!proceed) return;
     }
     
@@ -3552,8 +3665,8 @@ function renderAccountRegister() {
     }).join('');
 }
 
-function deleteRegisterTransaction(transactionId, isIncome) {
-    if (!confirm('Delete this transaction? This cannot be undone.')) {
+async function deleteRegisterTransaction(transactionId, isIncome) {
+    if (!(await showConfirm('Delete this transaction? This cannot be undone.'))) {
         return;
     }
     
@@ -3734,7 +3847,7 @@ function makeRegisterEnvelopeEditable(transactionId, isIncome) {
     });
 }
 
-function saveRegisterEnvelope(transactionId, newEnvelopeId) {
+async function saveRegisterEnvelope(transactionId, newEnvelopeId) {
     const transactions = Storage.getTransactions();
     const txnIndex = transactions.findIndex(t => t.id === transactionId);
     
@@ -3766,7 +3879,7 @@ function saveRegisterEnvelope(transactionId, newEnvelopeId) {
             if (newEnvelope) {
                 const balance = BudgetApp.getEnvelopeBalance(newEnvId);
                 if (txn.amount > balance) {
-                    if (!confirm(`This will overdraw the envelope. Balance: ${BudgetApp.formatCurrency(balance)}. Continue?`)) {
+                    if (!(await showConfirm(`This will overdraw the envelope. Balance: ${BudgetApp.formatCurrency(balance)}. Continue?`))) {
                         renderAccountRegister();
                         return;
                     }
@@ -3838,7 +3951,7 @@ function makeRegisterAmountEditable(transactionId) {
     });
 }
 
-function saveRegisterAmount(transactionId, newAmount, isIncome) {
+async function saveRegisterAmount(transactionId, newAmount, isIncome) {
     const numValue = parseFloat(newAmount);
     
     if (isNaN(numValue) || numValue < 0) {
@@ -3878,7 +3991,7 @@ function saveRegisterAmount(transactionId, newAmount, isIncome) {
                 const newBalance = envelope.funded - newSpent;
                 
                 if (newBalance < 0) {
-                    if (!confirm(`This will overdraw the envelope by ${BudgetApp.formatCurrency(Math.abs(newBalance))}. Continue?`)) {
+                    if (!(await showConfirm(`This will overdraw the envelope by ${BudgetApp.formatCurrency(Math.abs(newBalance))}. Continue?`))) {
                         renderAccountRegister();
                         return;
                     }
@@ -3900,7 +4013,7 @@ function saveRegisterAmount(transactionId, newAmount, isIncome) {
     renderEnvelopes();
 }
 
-function toggleRegisterStatus(transactionId, isIncome) {
+async function toggleRegisterStatus(transactionId, isIncome) {
     if (isIncome) {
         // Can't change income status
         return;
@@ -3923,7 +4036,7 @@ function toggleRegisterStatus(transactionId, isIncome) {
         if (envelope) {
             const balance = BudgetApp.getEnvelopeBalance(txn.envelopeId);
             if (txn.amount > balance) {
-                if (!confirm(`This will overdraw the envelope. Balance: ${BudgetApp.formatCurrency(balance)}. Continue?`)) {
+                if (!(await showConfirm(`This will overdraw the envelope. Balance: ${BudgetApp.formatCurrency(balance)}. Continue?`))) {
                     return;
                 }
             }
@@ -4007,17 +4120,17 @@ function updateBudgetDropdown() {
     ).join('');
 }
 
-function switchBudget(budgetId) {
+async function switchBudget(budgetId) {
     if (!budgetId) return;
-    
+
     // Confirm if user wants to switch
     const currentBudget = Storage.getBudgets().find(b => b.id === Storage.getActiveBudget());
     const newBudget = Storage.getBudgets().find(b => b.id === budgetId);
-    
+
     if (currentBudget.id === newBudget.id) return; // Same budget
-    
-    const confirmed = confirm(`Switch from "${currentBudget.name}" to "${newBudget.name}"?\n\nAny unsaved work will be preserved in "${currentBudget.name}".`);
-    
+
+    const confirmed = await showConfirm(`Switch from "${currentBudget.name}" to "${newBudget.name}"?\n\nAny unsaved work will be preserved in "${currentBudget.name}".`);
+
     if (!confirmed) {
         // Reset dropdown to current
         updateBudgetDropdown();
@@ -4136,11 +4249,11 @@ function switchBudgetFromList(budgetId) {
     switchBudget(budgetId);
 }
 
-function deleteBudgetConfirm(budgetId) {
+async function deleteBudgetConfirm(budgetId) {
     const budget = Storage.getBudgets().find(b => b.id === budgetId);
     if (!budget) return;
-    
-    const confirmed = confirm(
+
+    const confirmed = await showConfirm(
         `⚠️ DELETE BUDGET: "${budget.name}"?\n\n` +
         `This will permanently delete:\n` +
         `- All envelopes\n` +
@@ -4152,15 +4265,15 @@ function deleteBudgetConfirm(budgetId) {
         `This CANNOT be undone!\n\n` +
         `Are you sure?`
     );
-    
+
     if (!confirmed) return;
-    
-    const doubleConfirm = confirm(
+
+    const doubleConfirm = await showConfirm(
         `🚨 FINAL WARNING!\n\n` +
         `Delete "${budget.name}" permanently?\n\n` +
         `Click OK to DELETE`
     );
-    
+
     if (!doubleConfirm) return;
     
     try {
@@ -4181,7 +4294,7 @@ async function manualSyncToCloud() {
         return;
     }
     
-    const confirmed = confirm('☁️ Save all data to cloud?\n\nThis will overwrite any cloud data with your current local data.');
+    const confirmed = await showConfirm('☁️ Save all data to cloud?\n\nThis will overwrite any cloud data with your current local data.');
     
     if (!confirmed) return;
     
@@ -4200,7 +4313,7 @@ async function manualLoadFromCloud() {
         return;
     }
     
-    const confirmed = confirm('⬇️ Load data from cloud?\n\n⚠️ This will REPLACE your current local data with cloud data.');
+    const confirmed = await showConfirm('⬇️ Load data from cloud?\n\n⚠️ This will REPLACE your current local data with cloud data.');
     
     if (!confirmed) return;
     
